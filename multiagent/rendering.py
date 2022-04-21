@@ -11,18 +11,30 @@ if "Apple" in sys.version:
         os.environ['DYLD_FALLBACK_LIBRARY_PATH'] += ':/usr/lib'
         # (JDS 2016/04/15): avoid bug on Anaconda 2.3.0 / Yosemite
 
-from gym.utils import reraise
+#from gym.utils import reraise
 from gym import error
 
 try:
     import pyglet
 except ImportError as e:
-    reraise(suffix="HINT: you can install pyglet directly via 'pip install pyglet'. But if you really just want to install all Gym dependencies and not have to think about it, 'pip install -e .[all]' or 'pip install gym[all]' will do it.")
+    raise ImportError('''
+        Cannot import pyglet.
+        HINT: you can install pyglet directly via 'pip install pyglet'.
+        But if you really just want to install all Gym dependencies and not have to think about it,
+        'pip install -e .[all]' or 'pip install gym[all]' will do it.
+        ''')
+    #reraise(suffix="HINT: you can install pyglet directly via 'pip install pyglet'. But if you really just want to install all Gym dependencies and not have to think about it, 'pip install -e .[all]' or 'pip install gym[all]' will do it.")
 
 try:
     from pyglet.gl import *
 except ImportError as e:
-    reraise(prefix="Error occured while running `from pyglet.gl import *`",suffix="HINT: make sure you have OpenGL install. On Ubuntu, you can run 'apt-get install python-opengl'. If you're running on a server, you may need a virtual frame buffer; something like this should work: 'xvfb-run -s \"-screen 0 1400x900x24\" python <your_script.py>'")
+    raise ImportError('''
+        Error occured while running `from pyglet.gl import *`
+        HINT: make sure you have OpenGL install. On Ubuntu, you can run 'apt-get install python-opengl'.
+        If you're running on a server, you may need a virtual frame buffer; something like this should work:
+        'xvfb-run -s \"-screen 0 1400x900x24\" python <your_script.py>'
+        ''')
+    #reraise(prefix="Error occured while running `from pyglet.gl import *`",suffix="HINT: make sure you have OpenGL install. On Ubuntu, you can run 'apt-get install python-opengl'. If you're running on a server, you may need a virtual frame buffer; something like this should work: 'xvfb-run -s \"-screen 0 1400x900x24\" python <your_script.py>'")
 
 import math
 import numpy as np
@@ -42,8 +54,14 @@ def get_display(spec):
     else:
         raise error.Error('Invalid display specification: {}. (Must be a string like :0 or None.)'.format(spec))
 
+def center_image(image):
+    """ Sets an image's anchor point to its center"""
+    image.anchor_x = image.width // 2
+    image.anchor_y = image.height // 2
+
 class Viewer(object):
     def __init__(self, width, height, display=None):
+
         display = get_display(display)
 
         self.width = width
@@ -240,6 +258,34 @@ class FilledPolygon(Geom):
             glVertex3f(p[0], p[1],0)  # draw each vertex
         glEnd()
 
+from PIL import Image as PILImage
+class GLImage(Geom):
+    def __init__(self, img_path):
+        Geom.__init__(self)
+        im = PILImage.open(img_path).convert('RGB')
+        self.width, self.height, self.img_data = im.size[0], im.size[1], im.tobytes("raw", "RGB", 0, -1)
+    def render1(self):
+        # glClear(GL_COLOR_BUFFER_BIT)
+        glBegin(GL_POINTS)
+        # display
+        x_a=0;y_a=self.height
+        for page in self.img_data:
+            for array in page:
+                j=array[2]
+                k=array[1]
+                l=array[0]
+                print("({}, {}, {})".format(l,j,k))
+                glColor3f(l,j,k)
+                glVertex2i(x_a,y_a)
+                x_a+=1
+            y_a-=1
+            x_a=0
+        # end display
+        glEnd()
+
+def make_background(img_path, width=120, height=120):
+    return GLImage(img_path)
+
 def make_circle(radius=10, res=30, filled=True):
     points = []
     for i in range(res):
@@ -305,16 +351,16 @@ class Line(Geom):
         glVertex2f(*self.end)
         glEnd()
 
-class Image(Geom):
-    def __init__(self, fname, width, height):
-        Geom.__init__(self)
-        self.width = width
-        self.height = height
-        img = pyglet.image.load(fname)
-        self.img = img
-        self.flip = False
-    def render1(self):
-        self.img.blit(-self.width/2, -self.height/2, width=self.width, height=self.height)
+# class Image(Geom):
+#     def __init__(self, fname, width, height):
+#         Geom.__init__(self)
+#         self.width = width
+#         self.height = height
+#         img = pyglet.image.load(fname)
+#         self.img = img
+#         self.flip = False
+#     def render1(self):
+#         self.img.blit(-self.width/2, -self.height/2, width=self.width, height=self.height)
 
 # ================================================================
 
