@@ -154,6 +154,8 @@ class Viewer(object):
         self.add_onetime(geom)
         return geom
 
+    # TODO
+    # Why in render function
     def get_array(self):
         self.window.flip()
         image_data = pyglet.image.get_buffer_manager().get_color_buffer().get_image_data()

@@ -26,6 +26,8 @@ class Action(object):
 # properties and state of physical world entity
 class Entity(object):
     def __init__(self):
+        # id
+        self.id = 0
         # name 
         self.name = ''
         # properties:

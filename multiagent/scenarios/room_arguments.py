@@ -10,13 +10,17 @@ class RoomArgs(object):
         #                   'wall_points':[]}
         self.wall_info = {'wall_centers':[], 'wall_shapes':[]}
 
-        self.wall_info['wall_centers'], self.wall_info['wall_shapes'] = self.get_room(0)
+        self.wall_info['wall_centers'], self.wall_info['wall_shapes'] = self.get_room(1)
 
     def get_room(self, room_id=0):
         if room_id == 0: # home-area
             T = 0.03 # thickness
             wall_centers = [[-1, 0], [0, 1], [1, 0], [0, -1], [-0.5, 0], [0, 0.7], [0.3, 0.35], [0.65, 0], [0, -0.7]]
             wall_shapes  = [[T, 2], [2, T], [T, 2], [2, T], [1, T], [T, 0.7], [T, 0.7], [0.7, T], [T, 0.7]]
+            self.wall_num = len(wall_centers)
+        if room_id == 1: # empty
+            wall_centers = []
+            wall_shapes  = []
             self.wall_num = len(wall_centers)
 
         return wall_centers, wall_shapes
