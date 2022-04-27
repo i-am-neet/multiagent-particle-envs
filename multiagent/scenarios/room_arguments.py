@@ -10,7 +10,7 @@ class RoomArgs(object):
         #                   'wall_points':[]}
         self.wall_info = {'wall_centers':[], 'wall_shapes':[]}
 
-        self.wall_info['wall_centers'], self.wall_info['wall_shapes'] = self.get_room(1)
+        self.wall_info['wall_centers'], self.wall_info['wall_shapes'] = self.get_room(0)
 
     def get_room(self, room_id=0):
         if room_id == 0: # home-area

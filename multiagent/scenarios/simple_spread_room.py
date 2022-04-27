@@ -4,6 +4,7 @@ from multiagent.scenario import BaseScenario
 from multiagent.scenarios.room_arguments import RoomArgs
 import yaml
 import os
+import math
 
 # room_args = get_room_args()
 room_args = RoomArgs()
@@ -124,26 +125,57 @@ class Scenario(BaseScenario):
         return rew
 
     def observation(self, agent, world):
-        # TODO
-        # Does it needs all positions
-        # get positions of all entities in this agent's reference frame
+        # get lidar scanner data
+        ranges = [self.lidar(agent, world, 12)]
+
         entity_pos = []
-        # for entity in world.landmarks:  # world.entities:
+        # for entity in world.landmarks:  # world.entities: # get positions of all entities in this agent's reference frame
         #     entity_pos.append(entity.state.p_pos - agent.state.p_pos)
         entity = world.landmarks[agent.id]
         entity_pos.append(entity.state.p_pos - agent.state.p_pos)
-        # print(f"agent {agent.id} to landmark {entity.id} : {agent.state.p_pos} -> {entity.state.p_pos} ({entity_pos})")
-        # TODO
-        # Does colors needed?
-        # entity colors
-        entity_color = []
-        for entity in world.landmarks:  # world.entities:
-            entity_color.append(entity.color)
-        # communication of all other agents
-        comm = []
         other_pos = []
         for other in world.agents:
             if other is agent: continue
-            comm.append(other.state.c)
+            # comm.append(other.state.c)
             other_pos.append(other.state.p_pos - agent.state.p_pos)
-        return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + comm)
+        return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos)
+        # return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + ranges)
+
+    def lidar(self, agent, world, num_scan):
+        """
+        Return lidar scan's ranges [] by agent's position & scan_num
+        degree gap is 360/scan_num
+        """
+        ranges = []
+        deg_gap = 2*np.pi / num_scan
+        for s in range(num_scan):
+            deg = s*deg_gap
+            lidar_dir = np.array([np.cos(deg), np.sin(deg)])
+            agent_pos = agent.state.p_pos
+            p_ranges = []
+            for wall in world.walls:
+                wall_pos = wall.state.p_pos
+                wall_dir = np.array([1, 0] if wall.W > wall.L else [0, 1])
+                inter_pos = self.intersection(agent_pos, lidar_dir, wall_pos, wall_dir)
+                if inter_pos is None:
+                    d = math.inf
+                else:
+                    # Check inter_pos is on the wall
+                    check = abs(inter_pos - wall_pos) <= np.array([wall.W/2, wall.L/2])
+                    d = np.linalg.norm(inter_pos - agent_pos) if all(check) else math.inf
+                p_ranges.append(d)
+            ranges.append(min(p_ranges))
+        return np.array(ranges)
+
+    def intersection(self, p1, p1_dir, p2, p2_dir):
+        """
+        Calculate vectors' intersction point
+        return np.array(POINT)
+        """
+        try:
+            A = np.column_stack((p1_dir, p2_dir*-1))
+            B = p2 - p1
+            ans = np.linalg.inv(A).dot(B)
+            return p1+p1_dir*ans[0] if ans[0] > 0 else None
+        except:
+            return None
