@@ -155,13 +155,37 @@ class Viewer(object):
         return geom
 
     # TODO
+    # how to get array w/o window
+    # figure out pyglet.gl, pyglet.window, pyglet.canvas...
+    # is it possible drawing on canvas with gl instead of drawing on window?...
     def get_array(self):
-        self.window.flip()
-        image_data = pyglet.image.get_buffer_manager().get_color_buffer().get_image_data()
-        self.window.flip()
+        glClearColor(1,1,1,1)
+        self.window.clear()
+        self.window.switch_to()
+        self.window.dispatch_events()
+        self.transform.enable()
+        for geom in self.geoms:
+            geom.render()
+        for geom in self.onetime_geoms:
+            geom.render()
+        self.transform.disable()
+        arr = None
+
+        buffer = pyglet.image.get_buffer_manager().get_color_buffer()
+        image_data = buffer.get_image_data()
         arr = np.fromstring(image_data.data, dtype=np.uint8, sep='')
-        arr = arr.reshape(self.height, self.width, 4)
-        return arr[::-1,:,0:3]
+        arr = arr.reshape(buffer.height, buffer.width, 4)
+        arr = arr[::-1,:,0:3]
+        # self.window.flip()
+        self.onetime_geoms = []
+        return arr
+    # def get_array(self):
+    #     self.window.flip()
+    #     image_data = pyglet.image.get_buffer_manager().get_color_buffer().get_image_data()
+    #     self.window.flip()
+    #     arr = np.fromstring(image_data.data, dtype=np.uint8, sep='')
+    #     arr = arr.reshape(self.height, self.width, 4)
+    #     return arr[::-1,:,0:3]
 
 def _add_attrs(geom, attrs):
     if "color" in attrs:
