@@ -76,8 +76,10 @@ class MultiAgentEnv(gym.Env):
         self.shared_viewer = shared_viewer
         if self.shared_viewer:
             self.viewers = [None]
+            self.viewers_world = [None]
         else:
             self.viewers = [None] * self.n
+            self.viewers_world = [None] * self.n
         self._reset_render()
 
     def step(self, action_n):
@@ -198,9 +200,11 @@ class MultiAgentEnv(gym.Env):
     def _reset_render(self):
         self.render_geoms = None
         self.render_geoms_xform = None
+        self.render_geoms_world = None
+        self.render_geoms_xform_world = None
 
     # render environment
-    def render(self, mode='human'):
+    def render(self, mode='rgb_array'):
         if mode == 'human':
             alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
             message = ''
@@ -222,14 +226,18 @@ class MultiAgentEnv(gym.Env):
                 #from gym.envs.classic_control import rendering
                 from multiagent import rendering
                 self.viewers[i] = rendering.Viewer(map_width,map_height)
+                self.viewers_world[i] = rendering.Viewer(map_width,map_height)
 
         # create rendering geometry
         if self.render_geoms is None:
             # import rendering only if we need it (and don't import for headless machines)
             #from gym.envs.classic_control import rendering
             from multiagent import rendering
+            import copy
             self.render_geoms = []
             self.render_geoms_xform = []
+            self.render_geoms_world = []
+            self.render_geoms_xform_world = []
             for entity in self.world.entities:
                 if 'wall' in entity.name:
                     l, r, t, b = -entity.W/2, entity.W/2, entity.L/2, -entity.L/2
@@ -241,12 +249,13 @@ class MultiAgentEnv(gym.Env):
                     geom.set_color(*entity.color, alpha=0.5)
                 else:
                     geom.set_color(*entity.color)
-                if 'background' in entity.name:
-                    print("### make background ###")
-                    geom = rendering.make_background(entity.img_path)
                 geom.add_attr(xform)
                 self.render_geoms.append(geom)
                 self.render_geoms_xform.append(xform)
+                # world
+                if 'wall' in entity.name:
+                    self.render_geoms_world.append(geom)
+                    self.render_geoms_xform_world.append(xform)
 
             # add geoms to viewer
             for viewer in self.viewers:
@@ -254,6 +263,13 @@ class MultiAgentEnv(gym.Env):
                 for geom in self.render_geoms:
                     viewer.add_geom(geom)
 
+            # add world geoms to viewer_world
+            for viewer in self.viewers_world:
+                viewer.geoms = []
+                for geom in self.render_geoms_world:
+                    viewer.add_geom(geom)
+
+        results_world= []
         results = []
         for i in range(len(self.viewers)):
             from multiagent import rendering
@@ -264,15 +280,19 @@ class MultiAgentEnv(gym.Env):
             else:
                 pos = self.agents[i].state.p_pos
             self.viewers[i].set_bounds(pos[0]-cam_range,pos[0]+cam_range,pos[1]-cam_range,pos[1]+cam_range)
+            self.viewers_world[i].set_bounds(pos[0]-cam_range,pos[0]+cam_range,pos[1]-cam_range,pos[1]+cam_range)
+            # print(f"Bounds: {pos[0]-cam_range}, {pos[0]+cam_range}, {pos[1]-cam_range}, {pos[1]+cam_range}")
             # update geometry positions
             for e, entity in enumerate(self.world.entities):
-                if 'background' in entity.name:
-                    continue
                 self.render_geoms_xform[e].set_translation(*entity.state.p_pos)
+            for e, entity in enumerate(self.world.entities_world):
+                self.render_geoms_xform_world[e].set_translation(*entity.state.p_pos)
             # render to display or array
             results.append(self.viewers[i].render(return_rgb_array = mode=='rgb_array'))
+            results_world.append(self.viewers_world[i].render(return_rgb_array = mode=='rgb_array'))
 
-        return results
+        # return results
+        return results_world
 
     # create receptor field locations in local coordinate frame
     def _make_receptor_locations(self, agent):

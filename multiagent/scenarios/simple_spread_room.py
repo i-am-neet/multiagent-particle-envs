@@ -122,6 +122,7 @@ class Scenario(BaseScenario):
             for a in world.agents:
                 if self.is_collision(a, agent):
                     rew -= 1
+        # TODO doesn't have collide wall's reward
         return rew
 
     def observation(self, agent, world):

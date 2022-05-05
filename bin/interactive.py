@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import os,sys
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 import argparse
@@ -16,7 +16,7 @@ if __name__ == '__main__':
     # load scenario from script
     scenario = scenarios.load(args.scenario).Scenario()
     # create world
-    world = scenario.make_world()
+    world = scenario.make_world(1)
     # create multiagent environment
     env = MultiAgentEnv(world, scenario.reset_world, scenario.reward, scenario.observation, info_callback=None, shared_viewer = False)
     # render call to create viewer window (necessary only for interactive policies)
@@ -31,6 +31,7 @@ if __name__ == '__main__':
         for i, policy in enumerate(policies):
             act_n.append(policy.action(obs_n[i]))
         # step environment
+        # act_n = [item / 2 for item in act_n]
         obs_n, reward_n, done_n, _ = env.step(act_n)
         # render all agent views
         env.render()

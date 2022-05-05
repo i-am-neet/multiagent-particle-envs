@@ -41,12 +41,12 @@ class Entity(object):
         # color
         self.color = None
         # max speed and accel
-        self.max_speed = None
+        self.max_speed = 1.0 #None
         self.accel = None
         # state
         self.state = EntityState()
         # mass
-        self.initial_mass = 1.0
+        self.initial_mass = 1.0 # 1.0
 
     @property
     def mass(self):
@@ -110,7 +110,7 @@ class World(object):
         # physical damping
         self.damping = 0.25
         # contact response parameters
-        self.contact_force = 1e+2
+        self.contact_force = 1e+3 # 1e+2
         self.contact_margin = 1e-3
 
     # return all entities in the world
@@ -118,6 +118,12 @@ class World(object):
     def entities(self):
         # return self.agents + self.landmarks + self.walls + self.backgrounds
         return self.agents + self.landmarks + self.walls
+
+    # return environment entities ONLY
+    @property
+    def entities_world(self):
+        # return self.agents + self.landmarks + self.walls + self.backgrounds
+        return self.walls
 
     # return all agents controllable by external policies
     @property
@@ -177,6 +183,8 @@ class World(object):
             if not entity.movable: continue
             entity.state.p_vel = entity.state.p_vel * (1 - self.damping)
             if (p_force[i] is not None):
+                # if any([round(elem, 2) for elem in p_force[i]]):
+                #     print(f'{p_force[i][0]:.2f}, {p_force[i][1]:.2f}')
                 entity.state.p_vel += (p_force[i] / entity.mass) * self.dt
             if entity.max_speed is not None:
                 speed = np.sqrt(np.square(entity.state.p_vel[0]) + np.square(entity.state.p_vel[1]))
@@ -217,6 +225,7 @@ class World(object):
         force_b = -force if entity_b.movable else None
         return [force_a, force_b]
 
+    # TODO fix this weird thing
     def get_dist_min_to_wall(self, agent, wall):
         vec = np.append(agent.state.p_pos - wall.state.p_pos, 0)
         corner1 = np.array([wall.W / 2, wall.L / 2, 0])
