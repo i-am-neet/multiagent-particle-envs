@@ -67,23 +67,42 @@ class Scenario(BaseScenario):
         # for i, bg in enumerate(world.backgrounds):
         #     bg.color = np.array([0.0, 0.0, 0.0])
         # set random initial states
-        for i, agent in enumerate(world.agents):
-            # p = np.array([[0.8, 0.8], [0.8, -0.8], [-0.8, 0.8], [-0.8, -0.8]])
-            # agent.state.p_pos = p[i]
-            agent.state.p_pos = np.random.uniform(-0.8, +0.8, world.dim_p)
-            agent.state.p_vel = np.zeros(world.dim_p)
-            agent.state.c = np.zeros(world.dim_c)
-        for i, landmark in enumerate(world.landmarks):
-            # p = np.array([[0.5, 0.5], [0.5, -0.5], [-0.5, 0.5], [-0.5, -0.5]])
-            # landmark.state.p_pos = p[i]
-            landmark.state.p_pos = np.random.uniform(-0.8, +0.8, world.dim_p)
-            landmark.state.p_vel = np.zeros(world.dim_p)
         for i, wall in enumerate(world.walls):
             # wall.state.p_pos = np.array(room_args.wall_centers[i]) + world.landmarks[0].state.p_pos
             wall.state.p_pos = np.array(room_args.wall_info['wall_centers'][i])
             wall.state.p_vel = np.zeros(world.dim_p)
             wall.W = room_args.wall_info['wall_shapes'][i][0]
             wall.L = room_args.wall_info['wall_shapes'][i][1]
+        for i, agent in enumerate(world.agents):
+            # p = np.array([[0.8, 0.8], [0.8, -0.8], [-0.8, 0.8], [-0.8, -0.8]])
+            # agent.state.p_pos = p[i]
+            valid_pos = False
+            while (not valid_pos):
+                p = np.random.uniform(-0.8, +0.8, world.dim_p)
+                tmpA = Agent()
+                tmpA.state.p_pos = p
+                tmpA.size = 0.07
+                dd_walls = [ self.get_dist_min_to_wall(wall, tmpA) for wall in world.walls ]
+                if not any(dd_walls):
+                    break
+            # agent.state.p_pos = np.random.uniform(-0.8, +0.8, world.dim_p)
+            agent.state.p_pos = p
+            agent.state.p_vel = np.zeros(world.dim_p)
+            agent.state.c = np.zeros(world.dim_c)
+        for i, landmark in enumerate(world.landmarks):
+            # p = np.array([[0.5, 0.5], [0.5, -0.5], [-0.5, 0.5], [-0.5, -0.5]])
+            # landmark.state.p_pos = p[i]
+            valid_pos = False
+            while (not valid_pos):
+                p = np.random.uniform(-0.8, +0.8, world.dim_p)
+                tmpL = Landmark()
+                tmpL.state.p_pos = p
+                tmpL.size = 0.07
+                dd_walls = [ self.get_dist_min_to_wall(wall, tmpL) for wall in world.walls ]
+                if not any(dd_walls):
+                    break
+            landmark.state.p_pos = p
+            landmark.state.p_vel = np.zeros(world.dim_p)
 
     def benchmark_data(self, agent, world):
         rew = 0
@@ -109,6 +128,28 @@ class Scenario(BaseScenario):
         dist_min = agent1.size + agent2.size
         return True if dist < dist_min else False
 
+    def get_dist_min_to_wall(self, wall, agent):
+        vec = np.append(agent.state.p_pos - wall.state.p_pos, 0)
+        corner1 = np.array([wall.W / 2, wall.L / 2, 0])
+        corner2 = np.array([-wall.W / 2, wall.L / 2, 0])
+        flag1 = np.dot(np.cross(corner1, vec), np.cross(corner1, corner2))
+        flag2 = np.dot(np.cross(corner2, vec), np.cross(corner2, corner1))
+        if ((flag1 > 0 and flag2 > 0) or (flag1 < 0 and flag2 < 0)) and abs(vec[0]) <= wall.W / 2:
+            delta_pos = np.array([0, vec[1]])
+            dist = np.linalg.norm(delta_pos)
+            dist_min = agent.size + wall.L / 2
+        elif ((flag1 > 0 and flag2 < 0) or (flag1 < 0 and flag2 > 0)) and abs(vec[1]) <= wall.L / 2:
+            delta_pos = np.array([vec[0], 0])
+            dist = np.linalg.norm(delta_pos)
+            dist_min = agent.size + wall.W / 2
+        else:
+            nearest_corner = np.array([wall.W / 2 * ((vec[0] > 0) * 2 - 1),
+                                       wall.L / 2* ((vec[1] > 0) * 2 - 1)])
+            delta_pos = vec[:2] - nearest_corner
+            dist = np.linalg.norm(delta_pos)
+            dist_min = agent.size
+        return True if dist < dist_min else False
+
     def reward(self, agent, world):
         # Agents are rewarded based on minimum agent distance to each landmark, penalized for collisions
         rew = 0
@@ -118,11 +159,17 @@ class Scenario(BaseScenario):
         l = world.landmarks[agent.id]
         dist = np.sqrt(np.sum(np.square(agent.state.p_pos - l.state.p_pos)))
         rew -= dist
+
+        collision = False
         if agent.collide:
             for a in world.agents:
-                if self.is_collision(a, agent):
-                    rew -= 1
-        # TODO doesn't have collide wall's reward
+                if self.is_collision(a, agent) and agent.name != a.name:
+                    collision = True
+            for w in world.walls:
+                if self.get_dist_min_to_wall(w, agent):
+                    collision = True
+        if collision:
+            rew -= 1
         return rew
 
     def observation(self, agent, world):

@@ -108,9 +108,9 @@ class World(object):
         # simulation timestep
         self.dt = 0.1
         # physical damping
-        self.damping = 0.25
+        self.damping = 0.55 #0.25
         # contact response parameters
-        self.contact_force = 1e+3 # 1e+2
+        self.contact_force = 1e+4 # 1e+2
         self.contact_margin = 1e-3
 
     # return all entities in the world
