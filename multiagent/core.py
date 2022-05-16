@@ -207,6 +207,8 @@ class World(object):
             return [None, None] # not a collider
         if (entity_a is entity_b):
             return [None, None] # don't collide against itself
+        if 'wall' in entity_a.name and 'wall' in entity_b.name:
+            return [None, None] # don't collide against between walls
         if 'wall' in entity_a.name: # PeihongYu
             delta_pos, dist, dist_min = self.get_dist_min_to_wall(entity_b, entity_a)
         elif 'wall' in entity_b.name:
@@ -225,7 +227,7 @@ class World(object):
         force_b = -force if entity_b.movable else None
         return [force_a, force_b]
 
-    # TODO fix this weird thing
+    # FIXME little weird 
     def get_dist_min_to_wall(self, agent, wall):
         vec = np.append(agent.state.p_pos - wall.state.p_pos, 0)
         corner1 = np.array([wall.W / 2, wall.L / 2, 0])

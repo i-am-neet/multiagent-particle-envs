@@ -255,7 +255,7 @@ class MultiAgentEnv(gym.Env):
         return results_world
 
     # render environment
-    def render(self, mode='rgb_array'):
+    def render(self, mode=''):
         if mode == 'human':
             alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
             message = ''

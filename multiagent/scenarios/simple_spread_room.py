@@ -63,9 +63,7 @@ class Scenario(BaseScenario):
         # random properties for walls
         for i, wall in enumerate(world.walls):
             wall.color = np.array([0, 0.7, 0.0])
-        # random properties for background
-        # for i, bg in enumerate(world.backgrounds):
-        #     bg.color = np.array([0.0, 0.0, 0.0])
+        # TODO change room
         # set random initial states
         for i, wall in enumerate(world.walls):
             # wall.state.p_pos = np.array(room_args.wall_centers[i]) + world.landmarks[0].state.p_pos
@@ -169,7 +167,7 @@ class Scenario(BaseScenario):
                 if self.get_dist_min_to_wall(w, agent):
                     collision = True
         if collision:
-            rew -= 1
+            rew -= 10
         return rew
 
     def observation(self, agent, world):
@@ -186,8 +184,8 @@ class Scenario(BaseScenario):
             if other is agent: continue
             # comm.append(other.state.c)
             other_pos.append(other.state.p_pos - agent.state.p_pos)
-        return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos)
-        # return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + ranges)
+        # return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos)
+        return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + ranges)
 
     def lidar(self, agent, world, num_scan):
         """
@@ -213,6 +211,7 @@ class Scenario(BaseScenario):
                     d = np.linalg.norm(inter_pos - agent_pos) if all(check) else math.inf
                 p_ranges.append(d)
             ranges.append(min(p_ranges))
+        ranges = [2.83 if i > 2.83 else i for i in ranges] # longest length of laser
         return np.array(ranges)
 
     def intersection(self, p1, p1_dir, p2, p2_dir):

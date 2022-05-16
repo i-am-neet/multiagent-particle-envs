@@ -5,6 +5,7 @@ from __future__ import division
 import os
 import six
 import sys
+import base64
 
 if "Apple" in sys.version:
     if 'DYLD_FALLBACK_LIBRARY_PATH' in os.environ:
@@ -154,8 +155,7 @@ class Viewer(object):
         self.add_onetime(geom)
         return geom
 
-    # TODO
-    # how to get array w/o window
+    # TODO how to get array w/o window
     # figure out pyglet.gl, pyglet.window, pyglet.canvas...
     # is it possible drawing on canvas with gl instead of drawing on window?...
     def get_array(self):
