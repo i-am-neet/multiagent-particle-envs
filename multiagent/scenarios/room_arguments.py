@@ -19,16 +19,17 @@ class RoomArgs(object):
             wall_shapes  = [[T, 2], [2, T], [T, 2], [2, T], [1, T], [T, 0.7], [T, 0.7], [0.7, T], [T, 0.7]]
             self.wall_num = len(wall_centers)
         if room_id == 1: # empty
-            wall_centers = []
-            wall_shapes  = []
+            T = 0.03
+            wall_centers = [[-1, 0], [0, 1], [1, 0], [0, -1]]
+            wall_shapes  = [[T, 2], [2, T], [T, 2], [2, T]]
             self.wall_num = len(wall_centers)
         if room_id == 2: # easy-4-walls
-            T = 0.03 # thickness
+            T = 0.03
             wall_centers = [[-1, 0], [0, 1], [1, 0], [0, -1], [-0.65, 0], [0, 0.7], [0.65, 0], [0, -0.7]]
             wall_shapes  = [[T, 2], [2, T], [T, 2], [2, T], [0.7, T], [T, 0.7], [0.7, T], [T, 0.7]]
             self.wall_num = len(wall_centers)
         if room_id == 3: # easy-2-walls
-            T = 0.03 # thickness
+            T = 0.03
             wall_centers = [[-1, 0], [0, 1], [1, 0], [0, -1], [0, 0.7], [0, -0.7]]
             wall_shapes  = [[T, 2], [2, T], [T, 2], [2, T], [T, 0.7], [T, 0.7]]
             self.wall_num = len(wall_centers)

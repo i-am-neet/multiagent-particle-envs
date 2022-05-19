@@ -5,9 +5,40 @@ from multiagent.scenarios.room_arguments import RoomArgs
 import yaml
 import os
 import math
+import rospy
+from nav_msgs.srv import GetPlan
+from geometry_msgs.msg import PoseStamped, Quaternion
+from tf.transformations import euler_from_quaternion, quaternion_from_euler
+from multiagent.algos.a_star import AStarPlanner
 
 # room_args = get_room_args()
 room_args = RoomArgs()
+
+# set obstacle positions
+ox, oy = [], []
+for i in range(-100, 100):
+    ox.append(i)
+    oy.append(-100.0)
+for i in range(-100, 100):
+    ox.append(-100.0)
+    oy.append(i)
+for i in range(-100, 100):
+    ox.append(i)
+    oy.append(100.0)
+for i in range(-100, 100):
+    ox.append(100.0)
+    oy.append(i)
+for i in range(-100, -35):
+    ox.append(0.0)
+    oy.append(i)
+for i in range(35, 100):
+    ox.append(0.0)
+    oy.append(i)
+
+grid_size = 5.0  # [m]
+robot_radius = 1.0  # [m]
+
+a_star = AStarPlanner(ox, oy, grid_size, robot_radius)
 
 cwd = os.path.dirname(__file__)
 with open(cwd+'/color_coded/colors-glasbey.yaml', 'r') as f:
@@ -42,12 +73,6 @@ class Scenario(BaseScenario):
             wall.name = 'wall %d' % i
             wall.collide = True
             wall.movable = False
-        # # add background
-        # world.backgrounds = [Background()]
-        # for i, bg in enumerate(world.backgrounds):
-        #     bg.name = 'background %d' % i
-        #     bg.collide = False
-        #     bg.movable = False
         # make initial conditions
         self.reset_world(world)
         return world
@@ -72,16 +97,15 @@ class Scenario(BaseScenario):
             wall.W = room_args.wall_info['wall_shapes'][i][0]
             wall.L = room_args.wall_info['wall_shapes'][i][1]
         for i, agent in enumerate(world.agents):
-            # p = np.array([[0.8, 0.8], [0.8, -0.8], [-0.8, 0.8], [-0.8, -0.8]])
-            # agent.state.p_pos = p[i]
             valid_pos = False
             while (not valid_pos):
                 p = np.random.uniform(-0.8, +0.8, world.dim_p)
                 tmpA = Agent()
                 tmpA.state.p_pos = p
                 tmpA.size = 0.07
-                dd_walls = [ self.get_dist_min_to_wall(wall, tmpA) for wall in world.walls ]
-                if not any(dd_walls):
+                collide_walls = [ self.check_wall_collision(wall, tmpA) for wall in world.walls ]
+                collide_agents = [ np.linalg.norm(world.agents[j].state.p_pos - tmpA.state.p_pos) < tmpA.size*2 for j in range(i)]
+                if not any(collide_walls) and not any(collide_agents):
                     break
             # agent.state.p_pos = np.random.uniform(-0.8, +0.8, world.dim_p)
             agent.state.p_pos = p
@@ -95,9 +119,10 @@ class Scenario(BaseScenario):
                 p = np.random.uniform(-0.8, +0.8, world.dim_p)
                 tmpL = Landmark()
                 tmpL.state.p_pos = p
-                tmpL.size = 0.07
-                dd_walls = [ self.get_dist_min_to_wall(wall, tmpL) for wall in world.walls ]
-                if not any(dd_walls):
+                tmpL.size = 0.07 # gap size
+                collide_walls = [ self.check_wall_collision(wall, tmpL) for wall in world.walls ]
+                collide_agents = [ np.linalg.norm(world.landmarks[j].state.p_pos - tmpL.state.p_pos) < tmpL.size*2 for j in range(i)]
+                if not any(collide_walls) and not any(collide_agents):
                     break
             landmark.state.p_pos = p
             landmark.state.p_vel = np.zeros(world.dim_p)
@@ -126,7 +151,7 @@ class Scenario(BaseScenario):
         dist_min = agent1.size + agent2.size
         return True if dist < dist_min else False
 
-    def get_dist_min_to_wall(self, wall, agent):
+    def check_wall_collision(self, wall, agent):
         vec = np.append(agent.state.p_pos - wall.state.p_pos, 0)
         corner1 = np.array([wall.W / 2, wall.L / 2, 0])
         corner2 = np.array([-wall.W / 2, wall.L / 2, 0])
@@ -156,7 +181,14 @@ class Scenario(BaseScenario):
         #     rew -= min(dists)
         l = world.landmarks[agent.id]
         dist = np.sqrt(np.sum(np.square(agent.state.p_pos - l.state.p_pos)))
-        rew -= dist
+        # rew -= dist
+        # rew -= 1
+        rew -= 1 / (1 + np.exp(-dist+1)) # sigmoid
+
+        # Arrived
+        # if dist < 0.1:
+        #     rew += dist
+        #     rew += 5 * np.exp(-dist**0.05)
 
         collision = False
         if agent.collide:
@@ -164,10 +196,10 @@ class Scenario(BaseScenario):
                 if self.is_collision(a, agent) and agent.name != a.name:
                     collision = True
             for w in world.walls:
-                if self.get_dist_min_to_wall(w, agent):
+                if self.check_wall_collision(w, agent):
                     collision = True
         if collision:
-            rew -= 10
+            rew -= 1
         return rew
 
     def observation(self, agent, world):
@@ -184,8 +216,53 @@ class Scenario(BaseScenario):
             if other is agent: continue
             # comm.append(other.state.c)
             other_pos.append(other.state.p_pos - agent.state.p_pos)
+
+        # path planning's path
+        # ROS
+        # path = self.make_plan(agent.state.p_pos, entity.state.p_pos)
+        # next_dir = []
+        # next_p_pos = np.array([path[0][0], path[0][1]]) if len(path) != 0 else agent.state.p_pos
+        # print(f"{agent.state.p_pos} --> {next_p_pos} --> {entity.state.p_pos}")
+        # dir = next_p_pos - agent.state.p_pos
+        # next_dir.append(dir / np.linalg.norm(dir))
+        # print(f"agent {agent.name} : {next_dir}")
+        # input("Press Enter to continue")
+
+        # A* 1 but will stocked
+        # scale = 0.04
+        # p_start = tuple(((agent.state.p_pos + np.array([1, 1])) / scale).astype(int))
+        # p_goal = tuple(((entity.state.p_pos + np.array([1, 1])) / scale).astype(int))
+        # astar.s_start = p_start
+        # astar.s_goal = p_goal
+        # print(f"{p_start} -> {p_goal}")
+        # try:
+            # path, visited = astar.searching()
+        # except:
+            # print("Somethine wrong")
+        # print(path)
+
+        # A* 2
+        scale = 0.01
+        p_start = tuple((agent.state.p_pos / scale).astype(int))
+        p_goal = tuple((entity.state.p_pos / scale).astype(int))
+
+        next_dir = []
+        route = a_star.planning(p_start[0], p_start[1], p_goal[0], p_goal[1])
+        route = route[:-1] # abandon last elem (first point)
+        # print(f"({p_start[0]}, {p_start[1]}) -> ({p_goal[0]}, {p_goal[1]})")
+        if len(route) != 0:
+            next_p_vec = np.array(route[-1]) - np.array(p_start)
+            # print(f"next_p_vec : {route[-1]} - {p_start} = {next_p_vec}")
+            next_u_vec = next_p_vec / np.linalg.norm(next_p_vec)
+        else:
+            next_u_vec = np.array([0, 0])
+        next_dir.append(next_u_vec)
+        # print(f"agent {agent.name} : {next_dir}")
+        # input("Press Enter to continue")
+
         # return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos)
-        return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + ranges)
+        # return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + ranges)
+        return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + ranges + next_dir)
 
     def lidar(self, agent, world, num_scan):
         """
@@ -226,3 +303,38 @@ class Scenario(BaseScenario):
             return p1+p1_dir*ans[0] if ans[0] > 0 else None
         except:
             return None
+
+    def make_plan(self, start, goal):
+        """
+        Call service /robot0_move_base/make_plan
+        srv: nav_msgs/GetPlan
+        """
+        scale_to_gazebo = 3
+        q = quaternion_from_euler(0.0, 0.0, 0.0)
+        ms = PoseStamped()
+        mg = PoseStamped()
+        ms.header.frame_id = "map"
+        ms.pose.position.x = start[0]*scale_to_gazebo
+        ms.pose.position.y = start[1]*scale_to_gazebo
+        ms.pose.orientation = Quaternion(*q)
+        mg.header.frame_id = "map"
+        mg.pose.position.x = goal[0]*scale_to_gazebo
+        mg.pose.position.y = goal[1]*scale_to_gazebo
+        mg.pose.orientation = Quaternion(*q)
+
+        req = GetPlan()
+        req.start = ms
+        req.goal = mg
+        req.tolerance = 1.0
+
+        path = []
+        try:
+            get_plan = rospy.ServiceProxy('/robot0_move_base/make_plan', GetPlan)
+            resp = get_plan(req.start, req.goal, req.tolerance)
+            for p in resp.plan.poses:
+                x = p.pose.position.x / scale_to_gazebo
+                y = p.pose.position.y / scale_to_gazebo
+                path.append((x, y))
+            return path
+        except rospy.ServiceException as e:
+            print("Service call failed: {}".format(e))
