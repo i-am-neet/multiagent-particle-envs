@@ -293,8 +293,8 @@ class MultiAgentEnv(gym.Env):
                 else:
                     geom = rendering.make_circle(entity.size)
                 xform = rendering.Transform()
-                if 'agent' in entity.name:
-                    geom.set_color(*entity.color, alpha=0.5)
+                if 'landmark' in entity.name:
+                    geom.set_color(*entity.color, alpha=0.2)
                 else:
                     geom.set_color(*entity.color)
                 geom.add_attr(xform)

@@ -41,12 +41,12 @@ class Entity(object):
         # color
         self.color = None
         # max speed and accel
-        self.max_speed = 1.0 #None
+        self.max_speed = 0.5 #None
         self.accel = None
         # state
         self.state = EntityState()
         # mass
-        self.initial_mass = 1.0 # 1.0
+        self.initial_mass = 5.0 # 1.0
 
     @property
     def mass(self):
@@ -116,8 +116,7 @@ class World(object):
     # return all entities in the world
     @property
     def entities(self):
-        # return self.agents + self.landmarks + self.walls + self.backgrounds
-        return self.agents + self.landmarks + self.walls
+        return self.landmarks + self.agents + self.walls
 
     # return environment entities ONLY
     @property
@@ -155,10 +154,11 @@ class World(object):
     # gather agent action forces
     def apply_action_force(self, p_force):
         # set applied forces
-        for i,agent in enumerate(self.agents):
-            if agent.movable:
-                noise = np.random.randn(*agent.action.u.shape) * agent.u_noise if agent.u_noise else 0.0
-                p_force[i] = agent.action.u + noise                
+        for i,entity in enumerate(self.entities):
+            if "agent" not in entity.name: continue
+            if entity.movable:
+                noise = np.random.randn(*entity.action.u.shape) * entity.u_noise if entity.u_noise else 0.0
+                p_force[i] = entity.action.u + noise
         return p_force
 
     # gather physical forces acting on entities
