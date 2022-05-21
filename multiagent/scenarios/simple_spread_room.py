@@ -217,52 +217,32 @@ class Scenario(BaseScenario):
             # comm.append(other.state.c)
             other_pos.append(other.state.p_pos - agent.state.p_pos)
 
-        # path planning's path
-        # ROS
-        # path = self.make_plan(agent.state.p_pos, entity.state.p_pos)
-        # next_dir = []
-        # next_p_pos = np.array([path[0][0], path[0][1]]) if len(path) != 0 else agent.state.p_pos
-        # print(f"{agent.state.p_pos} --> {next_p_pos} --> {entity.state.p_pos}")
-        # dir = next_p_pos - agent.state.p_pos
-        # next_dir.append(dir / np.linalg.norm(dir))
-        # print(f"agent {agent.name} : {next_dir}")
-        # input("Press Enter to continue")
-
-        # A* 1 but will stocked
-        # scale = 0.04
-        # p_start = tuple(((agent.state.p_pos + np.array([1, 1])) / scale).astype(int))
-        # p_goal = tuple(((entity.state.p_pos + np.array([1, 1])) / scale).astype(int))
-        # astar.s_start = p_start
-        # astar.s_goal = p_goal
-        # print(f"{p_start} -> {p_goal}")
-        # try:
-            # path, visited = astar.searching()
-        # except:
-            # print("Somethine wrong")
-        # print(path)
-
-        # A* 2
+        # A*
         scale = 0.01
         p_start = tuple((agent.state.p_pos / scale).astype(int))
         p_goal = tuple((entity.state.p_pos / scale).astype(int))
 
-        next_dir = []
         route = a_star.planning(p_start[0], p_start[1], p_goal[0], p_goal[1])
         route = route[:-1] # abandon last elem (first point)
-        # print(f"({p_start[0]}, {p_start[1]}) -> ({p_goal[0]}, {p_goal[1]})")
+
+        # next point of route according agent's pos (unit vector)
+        next_dir = []
         if len(route) != 0:
             next_p_vec = np.array(route[-1]) - np.array(p_start)
-            # print(f"next_p_vec : {route[-1]} - {p_start} = {next_p_vec}")
             next_u_vec = next_p_vec / np.linalg.norm(next_p_vec)
         else:
             next_u_vec = np.array([0, 0])
         next_dir.append(next_u_vec)
-        # print(f"agent {agent.name} : {next_dir}")
-        # input("Press Enter to continue")
+
+        # rencent points of route according agent's pos (particle env coord)
+        future_size = 5
+        next_points = (np.array(route[-future_size:]) - np.array(p_start))*scale
+        if len(next_points) < future_size:
+            next_points = np.append(next_points, [0, 0]*(future_size - len(next_points)))
 
         # return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos)
         # return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + ranges)
-        return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + ranges + next_dir)
+        return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + ranges + next_dir + [next_points])
 
     def lidar(self, agent, world, num_scan):
         """
