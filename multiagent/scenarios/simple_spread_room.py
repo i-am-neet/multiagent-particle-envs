@@ -236,9 +236,11 @@ class Scenario(BaseScenario):
 
         # rencent points of route according agent's pos (particle env coord)
         future_size = 5
-        next_points = (np.array(route[-future_size:]) - np.array(p_start))*scale
+        next_points = (np.array(route[-future_size:]) - np.array(p_start))*scale if len(route) != 0 else np.array([0, 0]*future_size)
         if len(next_points) < future_size:
             next_points = np.append(next_points, [0, 0]*(future_size - len(next_points)))
+        else:
+            next_points = next_points.flatten()
 
         # return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos)
         # return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + ranges)
