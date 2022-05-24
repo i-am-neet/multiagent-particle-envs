@@ -183,7 +183,7 @@ class Scenario(BaseScenario):
         dist = np.sqrt(np.sum(np.square(agent.state.p_pos - l.state.p_pos)))
         # rew -= dist
         # rew -= 1
-        rew -= 1 / (1 + np.exp(-dist+1)) # sigmoid
+        rew -= 1 / (1 + np.exp(-dist*4+2)) # sigmoid
 
         # Arrived
         # if dist < 0.1:
@@ -199,18 +199,37 @@ class Scenario(BaseScenario):
                 if self.check_wall_collision(w, agent):
                     collision = True
         if collision:
-            rew -= 1
+            rew -= 0.5
         return rew
+
+    def done(self, agent, world):
+        # define termination of episode
+        done = False
+
+        l = world.landmarks[agent.id]
+        dist = np.sqrt(np.sum(np.square(agent.state.p_pos - l.state.p_pos)))
+
+        if dist < 0.1:
+            done = True
+
+        if agent.collide:
+            for a in world.agents:
+                if self.is_collision(a, agent) and agent.name != a.name:
+                    done = True
+            for w in world.walls:
+                if self.check_wall_collision(w, agent):
+                    done = True
+        return done
 
     def observation(self, agent, world):
         # get lidar scanner data
         ranges = [self.lidar(agent, world, 12)]
 
-        entity_pos = []
+        landmark_pos = []
         # for entity in world.landmarks:  # world.entities: # get positions of all entities in this agent's reference frame
         #     entity_pos.append(entity.state.p_pos - agent.state.p_pos)
-        entity = world.landmarks[agent.id]
-        entity_pos.append(entity.state.p_pos - agent.state.p_pos)
+        landmark = world.landmarks[agent.id]
+        landmark_pos.append(landmark.state.p_pos - agent.state.p_pos)
         other_pos = []
         for other in world.agents:
             if other is agent: continue
@@ -242,9 +261,23 @@ class Scenario(BaseScenario):
         else:
             next_points = next_points.flatten()
 
-        # return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos)
-        # return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + ranges)
-        return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + ranges + next_dir + [next_points])
+        # neighbors' goal
+        neighbor_range = 0.8
+        neighbors_goal = []
+        for other in world.agents:
+            if other is agent: continue
+            dist = np.sqrt(np.sum(np.square(agent.state.p_pos - other.state.p_pos)))
+            if dist < neighbor_range:
+                nl = world.landmarks[other.id]
+                neighbors_goal.append(nl.state.p_pos - agent.state.p_pos)
+            else:
+                neighbors_goal.append(np.array([0, 0]))
+        assert len(neighbors_goal)==len(world.agents)-1
+
+        # return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + landmark_pos + other_pos)
+        # return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + landmark_pos + other_pos + ranges)
+        return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + landmark_pos + other_pos + ranges + next_dir + [next_points])
+        # return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + landmark_pos + other_pos + neighbors_goal + ranges + next_dir + [next_points])
 
     def lidar(self, agent, world, num_scan):
         """
