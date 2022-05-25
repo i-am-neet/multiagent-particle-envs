@@ -19,7 +19,7 @@ from multiagent.scenarios.room_arguments import RoomArgs
 
 room_args = RoomArgs()
 
-show_animation = True
+show_animation = False
 
 show_print = False
 
