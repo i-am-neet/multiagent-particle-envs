@@ -10,35 +10,12 @@ from nav_msgs.srv import GetPlan
 from geometry_msgs.msg import PoseStamped, Quaternion
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from multiagent.algos.a_star import AStarPlanner
+from multiagent.utils.env_util import EventCounter
 
-# room_args = get_room_args()
 room_args = RoomArgs()
+room_args.get_room(0)
 
-# set obstacle positions
-ox, oy = [], []
-for i in range(-100, 100):
-    ox.append(i)
-    oy.append(-100.0)
-for i in range(-100, 100):
-    ox.append(-100.0)
-    oy.append(i)
-for i in range(-100, 100):
-    ox.append(i)
-    oy.append(100.0)
-for i in range(-100, 100):
-    ox.append(100.0)
-    oy.append(i)
-for i in range(-100, -35):
-    ox.append(0.0)
-    oy.append(i)
-for i in range(35, 100):
-    ox.append(0.0)
-    oy.append(i)
-
-grid_size = 5.0  # [m]
-robot_radius = 1.0  # [m]
-
-a_star = AStarPlanner(ox, oy, grid_size, robot_radius)
+a_star = AStarPlanner(room_args.ox, room_args.oy, room_args.grid_size, room_args.robot_radius)
 
 cwd = os.path.dirname(__file__)
 with open(cwd+'/color_coded/colors-glasbey.yaml', 'r') as f:
@@ -77,7 +54,19 @@ class Scenario(BaseScenario):
         self.reset_world(world)
         return world
 
-    def reset_world(self, world):
+    def change_room(self, world, room_num):
+        assert room_num < room_args.max_room_num
+        # change A* obstacles
+        room_args.get_room(room_num)
+        a_star.change_obstacle(room_args.ox, room_args.oy)
+        # re-constuct particle env
+        world.walls = [Wall() for i in range(room_args.wall_num)]
+        for i, wall in enumerate(world.walls):
+            wall.name = 'wall %d' % i
+            wall.collide = True
+            wall.movable = False
+
+    def reset_world(self, world, room_num=0):
         # random properties for agents
         for i, agent in enumerate(world.agents):
             agent.color = np.array(color_args[f'color_{i}'])
@@ -85,17 +74,18 @@ class Scenario(BaseScenario):
         for i, landmark in enumerate(world.landmarks):
             # landmark.color = np.array([0.25, 0.25, 0.25])
             landmark.color = np.array(color_args[f'color_{i}'])
+        # change room
+        if room_num != room_args.room_num:
+            self.change_room(world, room_num)
         # random properties for walls
         for i, wall in enumerate(world.walls):
             wall.color = np.array([0, 0.7, 0.0])
-        # TODO change room
         # set random initial states
         for i, wall in enumerate(world.walls):
-            # wall.state.p_pos = np.array(room_args.wall_centers[i]) + world.landmarks[0].state.p_pos
-            wall.state.p_pos = np.array(room_args.wall_info['wall_centers'][i])
+            wall.state.p_pos = np.array(room_args.wall_centers[i])
             wall.state.p_vel = np.zeros(world.dim_p)
-            wall.W = room_args.wall_info['wall_shapes'][i][0]
-            wall.L = room_args.wall_info['wall_shapes'][i][1]
+            wall.W = room_args.wall_shapes[i][0]
+            wall.L = room_args.wall_shapes[i][1]
         for i, agent in enumerate(world.agents):
             valid_pos = False
             while (not valid_pos):
@@ -239,7 +229,7 @@ class Scenario(BaseScenario):
         # A*
         scale = 0.01
         p_start = tuple((agent.state.p_pos / scale).astype(int))
-        p_goal = tuple((entity.state.p_pos / scale).astype(int))
+        p_goal = tuple((landmark.state.p_pos / scale).astype(int))
 
         route = a_star.planning(p_start[0], p_start[1], p_goal[0], p_goal[1])
         route = route[:-1] # abandon last elem (first point)

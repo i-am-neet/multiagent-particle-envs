@@ -15,7 +15,11 @@ import matplotlib.pyplot as plt
 
 import random
 
-show_animation = False
+from multiagent.scenarios.room_arguments import RoomArgs
+
+room_args = RoomArgs()
+
+show_animation = True
 
 show_print = False
 
@@ -56,6 +60,9 @@ class AStarPlanner:
         def __str__(self):
             return str(self.x) + "," + str(self.y) + "," + str(
                 self.cost) + "," + str(self.parent_index)
+
+    def change_obstacle(self, ox, oy):
+        self.calc_obstacle_map(ox, oy)
 
     def planning(self, sx, sy, gx, gy):
         """
@@ -254,26 +261,34 @@ def main():
     grid_size = 5.0  # [m]
     robot_radius = 1.0  # [m]
 
-    # set obstacle positions
-    ox, oy = [], []
-    for i in range(-100, 100):
-        ox.append(i)
-        oy.append(-100.0)
-    for i in range(-100, 100):
-        ox.append(-100.0)
-        oy.append(i)
-    for i in range(-100, 100):
-        ox.append(i)
-        oy.append(100.0)
-    for i in range(-100, 100):
-        ox.append(100.0)
-        oy.append(i)
-    for i in range(-100, -35):
-        ox.append(0.0)
-        oy.append(i)
-    for i in range(35, 100):
-        ox.append(0.0)
-        oy.append(i)
+    # # set obstacle positions
+    # ox, oy = [], []
+    # for i in range(-100, 100):
+    #     ox.append(i)
+    #     oy.append(-100.0)
+    # for i in range(-100, 100):
+    #     ox.append(-100.0)
+    #     oy.append(i)
+    # for i in range(-100, 100):
+    #     ox.append(i)
+    #     oy.append(100.0)
+    # for i in range(-100, 100):
+    #     ox.append(100.0)
+    #     oy.append(i)
+    # for i in range(-100, -35):
+    #     ox.append(0.0)
+    #     oy.append(i)
+    # for i in range(35, 100):
+    #     ox.append(0.0)
+    #     oy.append(i)
+
+    room_args.get_room(0)
+    a_star = AStarPlanner(room_args.ox, room_args.oy, grid_size, robot_radius)
+    room_args.get_room(3)
+    a_star.change_obstacle(room_args.ox, room_args.oy)
+
+    ox = room_args.ox
+    oy = room_args.oy
 
     if show_animation:  # pragma: no cover
         plt.plot(ox, oy, ".k")
@@ -282,7 +297,6 @@ def main():
         plt.grid(True)
         plt.axis("equal")
 
-    a_star = AStarPlanner(ox, oy, grid_size, robot_radius)
     route = a_star.planning(sx, sy, gx, gy)
 
     print(route)
@@ -300,6 +314,9 @@ def main():
             print("---")
 
     if show_animation:  # pragma: no cover
+        route = a_star.planning(sx, sy, gx, gy)
+        rx = [i[0] for i in route]
+        ry = [i[1] for i in route]
         plt.plot(rx, ry, "-r")
         plt.pause(0.001)
         plt.show()

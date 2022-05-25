@@ -3,6 +3,8 @@ from gym import spaces
 from gym.envs.registration import EnvSpec
 import numpy as np
 from multiagent.multi_discrete import MultiDiscrete
+from multiagent.utils.env_util import EventCounter
+import random
 
 map_width = 600
 map_height = 600
@@ -108,9 +110,13 @@ class MultiAgentEnv(gym.Env):
 
         return obs_n, reward_n, done_n, info_n
 
-    def reset(self):
+    @EventCounter(schedules=[10e+3, 22e+3, 36e+3], matters=[0, 1, 2, 3])# 3e+6
+    def reset(self, testing=False):
         # reset world
-        self.reset_callback(self.world)
+        if testing:
+            self.reset_callback(self.world, random.choice([0, 1, 2, 3]))
+        else:
+            self.reset_callback(self.world, self.reset.matter) # matter is room id
         # reset renderer
         self._reset_render()
         # record observations for each agent

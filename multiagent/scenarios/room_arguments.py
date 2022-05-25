@@ -1,37 +1,140 @@
 class RoomArgs(object):
-    def __init__(self, room_num=1, wall_num=9):
-        self.room_num = room_num # rooms' amount
-        self.wall_num = wall_num # walls' maximum amount
+    def __init__(self, room_num=0):
+        self.room_num = room_num
+        self.max_room_num = 4 # rooms' amount
+        self.wall_num = 0 # walls' maximum amount
         ## TODO
         # Use wall's center points (px, py), angle THETA, length L, and width W
         # Or specify polygon points
         # to repersent wall
         # self.wall_info = {'wall_centers':[], 'wall_angs':[], 'wall_lengths':[], 'wall_widths':[],
         #                   'wall_points':[]}
-        self.wall_info = {'wall_centers':[], 'wall_shapes':[]}
 
-        self.wall_info['wall_centers'], self.wall_info['wall_shapes'] = self.get_room(3)
+        self.wall_centers = 0
+        self.wall_shapes = 0
+        self.ox = 0
+        self.oy = 0
+        assert room_num < self.max_room_num
+        self.get_room(room_num)
+
+        # A* configs
+        self.grid_size = 5.0  # [m]
+        self.robot_radius = 1.0  # [m]
 
     def get_room(self, room_id=0):
-        if room_id == 0: # home-area
+        wall_centers, wall_shapes, ox, oy = [], [], [], []
+        if room_id == 0: # empty
+            # particle env
             T = 0.03 # thickness
-            wall_centers = [[-1, 0], [0, 1], [1, 0], [0, -1], [-0.5, 0], [0, 0.7], [0.3, 0.35], [0.65, 0], [0, -0.7]]
-            wall_shapes  = [[T, 2], [2, T], [T, 2], [2, T], [1, T], [T, 0.7], [T, 0.7], [0.7, T], [T, 0.7]]
-            self.wall_num = len(wall_centers)
-        if room_id == 1: # empty
-            T = 0.03
             wall_centers = [[-1, 0], [0, 1], [1, 0], [0, -1]]
             wall_shapes  = [[T, 2], [2, T], [T, 2], [2, T]]
             self.wall_num = len(wall_centers)
-        if room_id == 2: # easy-4-walls
-            T = 0.03
-            wall_centers = [[-1, 0], [0, 1], [1, 0], [0, -1], [-0.65, 0], [0, 0.7], [0.65, 0], [0, -0.7]]
-            wall_shapes  = [[T, 2], [2, T], [T, 2], [2, T], [0.7, T], [T, 0.7], [0.7, T], [T, 0.7]]
-            self.wall_num = len(wall_centers)
-        if room_id == 3: # easy-2-walls
+            # set obstacle positions for A*
+            for i in range(-100, 100):
+                ox.append(i)
+                oy.append(-100)
+            for i in range(-100, 100):
+                ox.append(-100)
+                oy.append(i)
+            for i in range(-100, 100):
+                ox.append(i)
+                oy.append(100)
+            for i in range(-100, 100):
+                ox.append(100)
+                oy.append(i)
+        if room_id == 1: # easy-2-walls
+            # particle env
             T = 0.03
             wall_centers = [[-1, 0], [0, 1], [1, 0], [0, -1], [0, 0.7], [0, -0.7]]
             wall_shapes  = [[T, 2], [2, T], [T, 2], [2, T], [T, 0.7], [T, 0.7]]
             self.wall_num = len(wall_centers)
+            # set obstacle positions for A*
+            for i in range(-100, 100):
+                ox.append(i)
+                oy.append(-100.0)
+            for i in range(-100, 100):
+                ox.append(-100.0)
+                oy.append(i)
+            for i in range(-100, 100):
+                ox.append(i)
+                oy.append(100.0)
+            for i in range(-100, 100):
+                ox.append(100.0)
+                oy.append(i)
+            for i in range(-100, -35):
+                ox.append(0.0)
+                oy.append(i)
+            for i in range(35, 100):
+                ox.append(0.0)
+                oy.append(i)
+        if room_id == 2: # easy-4-walls
+            # particle env
+            T = 0.03
+            wall_centers = [[-1, 0], [0, 1], [1, 0], [0, -1], [-0.7, 0], [0, 0.7], [0.7, 0], [0, -0.7]]
+            wall_shapes  = [[T, 2], [2, T], [T, 2], [2, T], [0.7, T], [T, 0.7], [0.7, T], [T, 0.7]]
+            self.wall_num = len(wall_centers)
+            # set obstacle positions for A*
+            for i in range(-100, 100):
+                ox.append(i)
+                oy.append(-100)
+            for i in range(-100, 100):
+                ox.append(-100)
+                oy.append(i)
+            for i in range(-100, 100):
+                ox.append(i)
+                oy.append(100)
+            for i in range(-100, 100):
+                ox.append(100)
+                oy.append(i)
+            for i in range(-100, -35):
+                ox.append(i)
+                oy.append(0)
+            for i in range(-100, -35):
+                ox.append(0)
+                oy.append(i)
+            for i in range(35, 100):
+                ox.append(i)
+                oy.append(0)
+            for i in range(35, 100):
+                ox.append(0)
+                oy.append(i)
 
-        return wall_centers, wall_shapes
+        if room_id == 3: # home-area
+            # particle env
+            T = 0.03
+            wall_centers = [[-1, 0], [0, 1], [1, 0], [0, -1], [-0.5, 0], [0, 0.7], [0.3, 0.35], [0.65, 0], [0, -0.7]]
+            wall_shapes  = [[T, 2], [2, T], [T, 2], [2, T], [1, T], [T, 0.7], [T, 0.7], [0.7, T], [T, 0.7]]
+            self.wall_num = len(wall_centers)
+            # set obstacle positions for A*
+            for i in range(-100, 100):
+                ox.append(i)
+                oy.append(-100)
+            for i in range(-100, 100):
+                ox.append(-100)
+                oy.append(i)
+            for i in range(-100, 100):
+                ox.append(i)
+                oy.append(100)
+            for i in range(-100, 100):
+                ox.append(100)
+                oy.append(i)
+            for i in range(-100, 0):
+                ox.append(i)
+                oy.append(0)
+            for i in range(35, 100):
+                ox.append(0)
+                oy.append(i)
+            for i in range(0, 70):
+                ox.append(30)
+                oy.append(i)
+            for i in range(30, 100):
+                ox.append(i)
+                oy.append(0)
+            for i in range(-100, -35):
+                ox.append(0)
+                oy.append(i)
+
+        self.wall_centers = wall_centers
+        self.wall_shapes = wall_shapes
+        self.ox = ox
+        self.oy = oy
