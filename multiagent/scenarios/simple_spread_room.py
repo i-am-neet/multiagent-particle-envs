@@ -101,6 +101,7 @@ class Scenario(BaseScenario):
             agent.state.p_pos = p
             agent.state.p_vel = np.zeros(world.dim_p)
             agent.state.c = np.zeros(world.dim_c)
+            agent.collision_times = 0
         for i, landmark in enumerate(world.landmarks):
             # p = np.array([[0.5, 0.5], [0.5, -0.5], [-0.5, 0.5], [-0.5, -0.5]])
             # landmark.state.p_pos = p[i]
@@ -166,30 +167,38 @@ class Scenario(BaseScenario):
     def reward(self, agent, world):
         # Agents are rewarded based on minimum agent distance to each landmark, penalized for collisions
         rew = 0
-        # for l in world.landmarks:
-        #     dists = [np.sqrt(np.sum(np.square(a.state.p_pos - l.state.p_pos))) for a in world.agents]
-        #     rew -= min(dists)
+
         l = world.landmarks[agent.id]
         dist = np.sqrt(np.sum(np.square(agent.state.p_pos - l.state.p_pos)))
-        # rew -= dist
-        # rew -= 1
         rew -= 1 / (1 + np.exp(-dist*4+2)) # sigmoid
 
         # Arrived
-        # if dist < 0.1:
-        #     rew += dist
-        #     rew += 5 * np.exp(-dist**0.05)
+        if dist < 0.1:
+            rew += np.exp(-dist*10)
 
         collision = False
+        at_field = []
         if agent.collide:
             for a in world.agents:
-                if self.is_collision(a, agent) and agent.name != a.name:
+                if a.name == agent.name: continue
+                dist = np.sqrt(np.sum(np.square(agent.state.p_pos - a.state.p_pos)))
+                at_force = np.exp(-2*dist) #1 / (1 + np.exp((dist-1)*6))
+                at_field.append(at_force)
+                if self.is_collision(a, agent):
                     collision = True
             for w in world.walls:
+                dist = np.sqrt(np.sum(np.square(agent.state.p_pos - w.state.p_pos)))
+                at_force = np.exp(-2*dist)
+                at_field.append(at_force)
                 if self.check_wall_collision(w, agent):
                     collision = True
+        rew -= max(at_field)
+
         if collision:
-            rew -= 0.5
+            agent.collision_times += 1
+            # rew -= 0.5
+            rew -= 1/ (1 + np.exp(-agent.collision_times + 1))
+
         return rew
 
     def done(self, agent, world):
@@ -202,13 +211,9 @@ class Scenario(BaseScenario):
         if dist < 0.1:
             done = True
 
-        if agent.collide:
-            for a in world.agents:
-                if self.is_collision(a, agent) and agent.name != a.name:
-                    done = True
-            for w in world.walls:
-                if self.check_wall_collision(w, agent):
-                    done = True
+        if agent.collision_times > 5:
+            done = True
+
         return done
 
     def observation(self, agent, world):
@@ -266,8 +271,8 @@ class Scenario(BaseScenario):
 
         # return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + landmark_pos + other_pos)
         # return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + landmark_pos + other_pos + ranges)
-        return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + landmark_pos + other_pos + ranges + next_dir + [next_points])
-        # return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + landmark_pos + other_pos + neighbors_goal + ranges + next_dir + [next_points])
+        # return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + landmark_pos + other_pos + ranges + next_dir + [next_points])
+        return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + landmark_pos + other_pos + neighbors_goal + ranges + next_dir + [next_points])
 
     def lidar(self, agent, world, num_scan):
         """

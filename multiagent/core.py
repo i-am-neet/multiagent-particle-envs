@@ -14,6 +14,8 @@ class AgentState(EntityState):
         super(AgentState, self).__init__()
         # communication utterance
         self.c = None
+        # collision times' counter
+        self.collision_times = 0
 
 # action of the agent
 class Action(object):
