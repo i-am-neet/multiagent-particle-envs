@@ -35,7 +35,8 @@ class MultiAgentEnv(gym.Env):
         # if true, action is a number 0...N, otherwise action is a one-hot N-dimensional vector
         self.discrete_action_input = False
         # if true, even the action is continuous, action will be performed discretely
-        self.force_discrete_action = world.discrete_action if hasattr(world, 'discrete_action') else False
+        # self.force_discrete_action = world.discrete_action if hasattr(world, 'discrete_action') else False
+        self.force_discrete_action = True
         # if true, every agent has the same reward
         self.shared_reward = world.collaborative if hasattr(world, 'collaborative') else False
         self.time = 0
@@ -47,7 +48,8 @@ class MultiAgentEnv(gym.Env):
             total_action_space = []
             # physical action space
             if self.discrete_action_space:
-                u_action_space = spaces.Discrete(world.dim_p * 2 + 1)
+                # u_action_space = spaces.Discrete(world.dim_p * 2 + 1)
+                u_action_space = spaces.Discrete(9)
             else:
                 u_action_space = spaces.Box(low=-agent.u_range, high=+agent.u_range, shape=(world.dim_p,), dtype=np.float32)
             if agent.movable:
@@ -182,8 +184,20 @@ class MultiAgentEnv(gym.Env):
                     action[0][:] = 0.0
                     action[0][d] = 1.0
                 if self.discrete_action_space:
-                    agent.action.u[0] += action[0][1] - action[0][2]
-                    agent.action.u[1] += action[0][3] - action[0][4]
+                    if self.force_discrete_action:
+                        u_index = np.argmax(action[0])
+                        if u_index == 0: agent.action.u = np.array([ 0,  0], dtype=np.float)
+                        if u_index == 1: agent.action.u = np.array([ 1,  0], dtype=np.float)
+                        if u_index == 2: agent.action.u = np.array([ 1,  1], dtype=np.float)
+                        if u_index == 3: agent.action.u = np.array([ 0,  1], dtype=np.float)
+                        if u_index == 4: agent.action.u = np.array([-1,  1], dtype=np.float)
+                        if u_index == 5: agent.action.u = np.array([-1,  0], dtype=np.float)
+                        if u_index == 6: agent.action.u = np.array([-1, -1], dtype=np.float)
+                        if u_index == 7: agent.action.u = np.array([ 0, -1], dtype=np.float)
+                        if u_index == 8: agent.action.u = np.array([ 1, -1], dtype=np.float)
+                    else:
+                        agent.action.u[0] += action[0][1] - action[0][2]
+                        agent.action.u[1] += action[0][3] - action[0][4]
                 else:
                     agent.action.u = action[0]
             sensitivity = 5.0
