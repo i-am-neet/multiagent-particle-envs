@@ -5,10 +5,11 @@ from multiagent.scenarios.room_arguments import RoomArgs
 import yaml
 import os
 import math
-import rospy
-from nav_msgs.srv import GetPlan
-from geometry_msgs.msg import PoseStamped, Quaternion
-from tf.transformations import euler_from_quaternion, quaternion_from_euler
+# FIXME cannot import ros w/ tkinter
+# import rospy
+# from nav_msgs.srv import GetPlan
+# from geometry_msgs.msg import PoseStamped, Quaternion
+# from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from multiagent.algos.a_star import AStarPlanner
 from multiagent.utils.env_util import EventCounter
 

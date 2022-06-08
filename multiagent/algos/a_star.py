@@ -11,6 +11,8 @@ See Wikipedia article (https://en.wikipedia.org/wiki/A*_search_algorithm)
 
 import math
 
+import matplotlib
+matplotlib.use('tkagg')
 import matplotlib.pyplot as plt
 
 import random
@@ -89,7 +91,7 @@ class AStarPlanner:
 
         while 1:
             if len(open_set) == 0:
-                print("Open set is empty..")
+                # print("Open set is empty..")
                 break
 
             c_id = min(
@@ -256,10 +258,10 @@ def main():
     # start and goal position
     sx = -19.0  # [m]
     sy = 14.0  # [m]
-    gx = 40.0  # [m]
-    gy = -20.0  # [m]
+    gx = 50.0  # [m]
+    gy = 50.0  # [m]
     grid_size = 5.0  # [m]
-    robot_radius = 1.0  # [m]
+    robot_radius = 10.0  # [m]
 
     # # set obstacle positions
     # ox, oy = [], []
