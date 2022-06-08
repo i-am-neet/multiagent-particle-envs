@@ -1,7 +1,7 @@
 class RoomArgs(object):
     def __init__(self, room_num=0):
         self.room_num = room_num
-        self.max_room_num = 4 # rooms' amount
+        self.max_room_num = 6 # rooms' amount
         self.wall_num = 0 # walls' maximum amount
         ## TODO
         # Use wall's center points (px, py), angle THETA, length L, and width W
@@ -19,7 +19,7 @@ class RoomArgs(object):
 
         # A* configs
         self.grid_size = 5.0  # [m]
-        self.robot_radius = 1.0  # [m]
+        self.robot_radius = 10.0  # [m]
 
     def get_room(self, room_id=0):
         wall_centers, wall_shapes, ox, oy = [], [], [], []
@@ -99,7 +99,56 @@ class RoomArgs(object):
                 ox.append(0)
                 oy.append(i)
 
-        if room_id == 3: # home-area
+        if room_id == 3: # center-bar
+            # particle env
+            T = 0.03
+            wall_centers = [[-1, 0], [0, 1], [1, 0], [0, -1], [0, 0]]
+            wall_shapes  = [[T, 2], [2, T], [T, 2], [2, T], [1.2, T]]
+            self.wall_num = len(wall_centers)
+            # set obstacle positions for A*
+            for i in range(-100, 100):
+                ox.append(i)
+                oy.append(-100)
+            for i in range(-100, 100):
+                ox.append(-100)
+                oy.append(i)
+            for i in range(-100, 100):
+                ox.append(i)
+                oy.append(100)
+            for i in range(-100, 100):
+                ox.append(100)
+                oy.append(i)
+            for i in range(-60, 60):
+                ox.append(i)
+                oy.append(0)
+
+        if room_id == 4: # center-cross
+            # particle env
+            T = 0.03
+            wall_centers = [[-1, 0], [0, 1], [1, 0], [0, -1], [0, 0], [0, 0]]
+            wall_shapes  = [[T, 2], [2, T], [T, 2], [2, T], [1.2, T], [T, 1.2]]
+            self.wall_num = len(wall_centers)
+            # set obstacle positions for A*
+            for i in range(-100, 100):
+                ox.append(i)
+                oy.append(-100)
+            for i in range(-100, 100):
+                ox.append(-100)
+                oy.append(i)
+            for i in range(-100, 100):
+                ox.append(i)
+                oy.append(100)
+            for i in range(-100, 100):
+                ox.append(100)
+                oy.append(i)
+            for i in range(-60, 60):
+                ox.append(i)
+                oy.append(0)
+            for i in range(-60, 60):
+                ox.append(0)
+                oy.append(i)
+
+        if room_id == 5: # home-area
             # particle env
             T = 0.03
             wall_centers = [[-1, 0], [0, 1], [1, 0], [0, -1], [-0.5, 0], [0, 0.7], [0.3, 0.35], [0.65, 0], [0, -0.7]]

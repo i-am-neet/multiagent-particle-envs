@@ -110,13 +110,13 @@ class MultiAgentEnv(gym.Env):
 
         return obs_n, reward_n, done_n, info_n
 
-    @EventCounter(schedules=[10e+3, 22e+3, 36e+3], matters=[0, 1, 2, 3])# 3e+6
+    @EventCounter(schedules=[10e+3, 20e+3, 30e+3, 40e+3], matters=[0, 1, 2, 3, 4]) # Scheduling room
     def reset(self, testing=False):
         # reset world
         if testing:
-            self.reset_callback(self.world, random.choice([0, 1, 2, 3]))
+            self.reset_callback(self.world, random.choice([0, 1, 2, 3, 4]))
         else:
-            self.reset_callback(self.world, self.reset.matter) # matter is room id
+            self.reset_callback(self.world, self.reset.matter, True) # matter is room id
         # reset renderer
         self._reset_render()
         # record observations for each agent
