@@ -43,7 +43,7 @@ class Entity(object):
         # color
         self.color = None
         # max speed and accel
-        self.max_speed = 0.8 #None
+        self.max_speed = 1.0 #None
         self.accel = None
         # state
         self.state = EntityState()
@@ -112,7 +112,7 @@ class World(object):
         # physical damping
         self.damping = 0.55 #0.25
         # contact response parameters
-        self.contact_force = 1e+4 # 1e+2
+        self.contact_force = 1e+3 # 1e+2
         self.contact_margin = 1e-3
 
     # return all entities in the world
