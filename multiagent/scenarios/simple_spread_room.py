@@ -66,7 +66,15 @@ class Scenario(BaseScenario):
             wall.collide = True
             wall.movable = False
 
-    def reset_world(self, world, room_num=0):
+    def reset_world(self, world, room_num=0, scheduling=False):
+        schedules=[400, 800, 1600, 3200, 6400]
+        matters=[0.2, 0.4, 0.8, 1.2, 1.6, 2.0]
+        if self.counter == schedules[0]:
+            schedules.pop(0)
+            if matters and len(matters) != 1:
+                matters.pop(0)
+        matter = matters[0] if matters else 2.0
+        self.counter += 1
         # random properties for agents
         for i, agent in enumerate(world.agents):
             agent.color = np.array(color_args[f'color_{i}'])
@@ -76,6 +84,7 @@ class Scenario(BaseScenario):
             landmark.color = np.array(color_args[f'color_{i}'])
         # change room
         if room_num != room_args.room_num:
+            self.counter = 0
             self.change_room(world, room_num)
         # random properties for walls
         for i, wall in enumerate(world.walls):
@@ -92,7 +101,7 @@ class Scenario(BaseScenario):
                 p = np.random.uniform(-0.8, +0.8, world.dim_p)
                 tmpA = Agent()
                 tmpA.state.p_pos = p
-                tmpA.size = 0.07
+                tmpA.size = 0.1
                 collide_walls = [ self.check_wall_collision(wall, tmpA) for wall in world.walls ]
                 collide_agents = [ np.linalg.norm(world.agents[j].state.p_pos - tmpA.state.p_pos) < tmpA.size*2 for j in range(i)]
                 if not any(collide_walls) and not any(collide_agents):
@@ -107,13 +116,24 @@ class Scenario(BaseScenario):
             # landmark.state.p_pos = p[i]
             valid_pos = False
             while (not valid_pos):
-                p = np.random.uniform(-0.8, +0.8, world.dim_p)
+                if scheduling:
+                    ap = world.agents[i].state.p_pos
+                    nx = (ap[0] - matter) if (ap[0] - matter) > -0.9 else -0.9
+                    px = (ap[0] + matter) if (ap[0] + matter) < +0.9 else +0.9
+                    ny = (ap[1] - matter) if (ap[1] - matter) > -0.9 else -0.9
+                    py = (ap[1] + matter) if (ap[1] + matter) < +0.9 else +0.9
+                    x = np.random.uniform(nx, px, 1)
+                    y = np.random.uniform(ny, py, 1)
+                    p = np.concatenate((x, y))
+                else:
+                    p = np.random.uniform(-0.8, +0.8, world.dim_p)
                 tmpL = Landmark()
                 tmpL.state.p_pos = p
-                tmpL.size = 0.07 # gap size
+                tmpL.size = 0.1 # gap size
                 collide_walls = [ self.check_wall_collision(wall, tmpL) for wall in world.walls ]
-                collide_agents = [ np.linalg.norm(world.landmarks[j].state.p_pos - tmpL.state.p_pos) < tmpL.size*2 for j in range(i)]
-                if not any(collide_walls) and not any(collide_agents):
+                collide_landmarks = [ np.linalg.norm(world.landmarks[j].state.p_pos - tmpL.state.p_pos) < tmpL.size*2 for j in range(i)]
+                collide_agents = [ np.linalg.norm(a.state.p_pos - tmpL.state.p_pos) < tmpL.size*2 for a in world.agents]
+                if not any(collide_walls) and not any(collide_landmarks) and not any(collide_agents):
                     break
             landmark.state.p_pos = p
             landmark.state.p_vel = np.zeros(world.dim_p)
