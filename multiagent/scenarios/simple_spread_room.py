@@ -216,8 +216,27 @@ class Scenario(BaseScenario):
 
         if collision:
             agent.collision_times += 1
-            # rew -= 0.5
-            rew -= 1/ (1 + np.exp(-agent.collision_times + 1))
+            rew -= 0.5
+            # rew -= 1/ (1 + np.exp(-agent.collision_times + 1))
+
+        # Direction reward which compare A* and action
+        scale = 0.01
+        p_start = tuple((agent.state.p_pos / scale).astype(int))
+        p_goal = tuple((l.state.p_pos / scale).astype(int))
+
+        route = a_star.planning(p_start[0], p_start[1], p_goal[0], p_goal[1])
+
+        if len(route) >= 2:
+            next_p_vec = np.array(route[-2]) - np.array(route[-1])
+            next_u_vec = next_p_vec / np.linalg.norm(next_p_vec, 1) # get Norm-1 distance
+        else:
+            next_u_vec = np.array([0, 0])
+
+        u = agent.action.u
+        a_u_vec = u / np.linalg.norm(u, 1) if any(u) else u
+
+        if not all(a_u_vec == next_u_vec):
+            rew -= 0.2
 
         return rew
 
@@ -231,8 +250,8 @@ class Scenario(BaseScenario):
         if dist < 0.1:
             done = True
 
-        if agent.collision_times > 5:
-            done = True
+        # if agent.collision_times > 5:
+        #     done = True
 
         return done
 
@@ -269,7 +288,7 @@ class Scenario(BaseScenario):
         next_dir.append(next_u_vec)
 
         # rencent points of route according agent's pos (particle env coord)
-        future_size = 5
+        future_size = 8
         next_points = (np.array(route[-future_size:]) - np.array(p_start))*scale if len(route) != 0 else np.array([0, 0]*future_size)
         if len(next_points) < future_size:
             next_points = np.append(next_points, [0, 0]*(future_size - len(next_points)))
