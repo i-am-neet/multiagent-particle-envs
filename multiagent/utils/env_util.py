@@ -25,6 +25,15 @@ def EventCounter(schedules, matters):
         return wrapper
     return wrap_func
 
+class Test():
+    @EventCounter(schedules=[2, 4, 8, 16], matters=[0, 1, 2, 3, 4])
+    def reset(self):
+        print(f'{self.reset.counter}: {self.reset.matter}')
+        if self.reset.counter == 12:
+            self.reset.__func__.counter = 0
+            self.reset.__func__.schedules = [1,5,7,11]
+            self.reset.__func__.matters = [10, 20, 30, 40, 50]
+
 if __name__ == '__main__':
     @EventCounter([2, 4, 8, 16], [0, 1, 2, 3])
     def reset():
@@ -36,3 +45,8 @@ if __name__ == '__main__':
 
     for _ in range(30):
         reset()
+
+    t = Test()
+    for _ in range(30):
+        t.reset()
+

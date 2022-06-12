@@ -12,6 +12,7 @@ import math
 # from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from multiagent.algos.a_star import AStarPlanner
 from multiagent.utils.env_util import EventCounter
+import time
 
 room_args = RoomArgs()
 room_args.get_room(0)
@@ -67,15 +68,9 @@ class Scenario(BaseScenario):
             wall.collide = True
             wall.movable = False
 
+    # TODO check schedules is working
+    @EventCounter(schedules=[400, 800, 1600, 3200, 6400], matters=[0.2, 0.4, 0.8, 1.2, 1.6, 2.0])
     def reset_world(self, world, room_num=0, scheduling=False):
-        schedules=[400, 800, 1600, 3200, 6400]
-        matters=[0.2, 0.4, 0.8, 1.2, 1.6, 2.0]
-        if self.counter == schedules[0]:
-            schedules.pop(0)
-            if matters and len(matters) != 1:
-                matters.pop(0)
-        matter = matters[0] if matters else 2.0
-        self.counter += 1
         # random properties for agents
         for i, agent in enumerate(world.agents):
             agent.color = np.array(color_args[f'color_{i}'])
@@ -84,9 +79,14 @@ class Scenario(BaseScenario):
             # landmark.color = np.array([0.25, 0.25, 0.25])
             landmark.color = np.array(color_args[f'color_{i}'])
         # change room
+        # room_num = 1 # Testing code
         if room_num != room_args.room_num:
-            self.counter = 0
+            print(f"########## Change to room {room_num}, Resetting schedule... ##########")
+            self.reset_world.__func__.counter = 0
+            self.reset_world.__func__.schedules=[400, 800, 1600, 3200, 6400]
+            self.reset_world.__func__.matters=[0.2, 0.4, 0.8, 1.2, 1.6, 2.0]
             self.change_room(world, room_num)
+        # print(self.reset_world.counter) # Testing code
         # random properties for walls
         for i, wall in enumerate(world.walls):
             wall.color = np.array([0, 0.7, 0.0])
@@ -116,9 +116,14 @@ class Scenario(BaseScenario):
             # p = np.array([[0.5, 0.5], [0.5, -0.5], [-0.5, 0.5], [-0.5, -0.5]])
             # landmark.state.p_pos = p[i]
             valid_pos = False
+            st = time.time()
             while (not valid_pos):
+                if time.time() - st > 5:
+                    print(f"Take times!!! agent_pos: {world.agents[i].state.p_pos}, matter: {self.reset_world.matter}")
+                    st = time.time()
                 if scheduling:
                     ap = world.agents[i].state.p_pos
+                    matter = self.reset_world.matter
                     nx = (ap[0] - matter) if (ap[0] - matter) > -0.9 else -0.9
                     px = (ap[0] + matter) if (ap[0] + matter) < +0.9 else +0.9
                     ny = (ap[1] - matter) if (ap[1] - matter) > -0.9 else -0.9
@@ -312,7 +317,9 @@ class Scenario(BaseScenario):
         # return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + landmark_pos + other_pos)
         # return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + landmark_pos + other_pos + ranges)
         # return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + landmark_pos + other_pos + ranges + next_dir + [next_points])
-        return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + landmark_pos + other_pos + neighbors_goal + ranges + next_dir + [next_points])
+        # Personal info: [agent.state.p_vel] + [agent.state.p_pos] + landmark_pos + ranges + next_dir + [next_points]
+        # Collaborate info: other_pos + neighbors_goal
+        return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + landmark_pos + ranges + next_dir + [next_points] + other_pos + neighbors_goal)
 
     def lidar(self, agent, world, num_scan):
         """

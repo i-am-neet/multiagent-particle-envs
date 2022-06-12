@@ -22,6 +22,7 @@ class RoomArgs(object):
         self.robot_radius = 10.0  # [m]
 
     def get_room(self, room_id=0):
+        self.room_num = room_id
         wall_centers, wall_shapes, ox, oy = [], [], [], []
         if room_id == 0: # empty
             # particle env
