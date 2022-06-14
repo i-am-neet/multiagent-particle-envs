@@ -97,13 +97,12 @@ class Scenario(BaseScenario):
             wall.W = room_args.wall_shapes[i][0]
             wall.L = room_args.wall_shapes[i][1]
         for i, agent in enumerate(world.agents):
-            valid_pos = False
-            while (not valid_pos):
+            while (True):
                 p = np.random.uniform(-0.8, +0.8, world.dim_p)
                 tmpA = Agent()
                 tmpA.state.p_pos = p
                 tmpA.size = 0.1
-                collide_walls = [ self.check_wall_collision(wall, tmpA) for wall in world.walls ]
+                collide_walls = self.check_wall_collision(world.walls, tmpA)
                 collide_agents = [ np.linalg.norm(world.agents[j].state.p_pos - tmpA.state.p_pos) < tmpA.size*2 for j in range(i)]
                 if not any(collide_walls) and not any(collide_agents):
                     break
@@ -115,9 +114,8 @@ class Scenario(BaseScenario):
         for i, landmark in enumerate(world.landmarks):
             # p = np.array([[0.5, 0.5], [0.5, -0.5], [-0.5, 0.5], [-0.5, -0.5]])
             # landmark.state.p_pos = p[i]
-            valid_pos = False
             st = time.time()
-            while (not valid_pos):
+            while (True):
                 if time.time() - st > 5:
                     print(f"Take times!!! agent_pos: {world.agents[i].state.p_pos}, matter: {self.reset_world.matter}")
                     st = time.time()
@@ -136,7 +134,7 @@ class Scenario(BaseScenario):
                 tmpL = Landmark()
                 tmpL.state.p_pos = p
                 tmpL.size = 0.1 # gap size
-                collide_walls = [ self.check_wall_collision(wall, tmpL) for wall in world.walls ]
+                collide_walls = self.check_wall_collision(world.walls, tmpL)
                 collide_landmarks = [ np.linalg.norm(world.landmarks[j].state.p_pos - tmpL.state.p_pos) < tmpL.size*2 for j in range(i)]
                 collide_agents = [ np.linalg.norm(a.state.p_pos - tmpL.state.p_pos) < tmpL.size*2 for a in world.agents]
                 if not any(collide_walls) and not any(collide_landmarks) and not any(collide_agents):
@@ -168,27 +166,63 @@ class Scenario(BaseScenario):
         dist_min = agent1.size + agent2.size
         return True if dist < dist_min else False
 
-    def check_wall_collision(self, wall, agent):
-        vec = np.append(agent.state.p_pos - wall.state.p_pos, 0)
-        corner1 = np.array([wall.W / 2, wall.L / 2, 0])
-        corner2 = np.array([-wall.W / 2, wall.L / 2, 0])
-        flag1 = np.dot(np.cross(corner1, vec), np.cross(corner1, corner2))
-        flag2 = np.dot(np.cross(corner2, vec), np.cross(corner2, corner1))
-        if ((flag1 > 0 and flag2 > 0) or (flag1 < 0 and flag2 < 0)) and abs(vec[0]) <= wall.W / 2:
-            delta_pos = np.array([0, vec[1]])
-            dist = np.linalg.norm(delta_pos)
-            dist_min = agent.size + wall.L / 2
-        elif ((flag1 > 0 and flag2 < 0) or (flag1 < 0 and flag2 > 0)) and abs(vec[1]) <= wall.L / 2:
-            delta_pos = np.array([vec[0], 0])
-            dist = np.linalg.norm(delta_pos)
-            dist_min = agent.size + wall.W / 2
-        else:
-            nearest_corner = np.array([wall.W / 2 * ((vec[0] > 0) * 2 - 1),
-                                       wall.L / 2* ((vec[1] > 0) * 2 - 1)])
-            delta_pos = vec[:2] - nearest_corner
-            dist = np.linalg.norm(delta_pos)
-            dist_min = agent.size
-        return True if dist < dist_min else False
+    def check_wall_collision(self, walls, agent):
+        """
+        Check whether wall collide with agent
+        return each wall whether it is collided with agent
+        return [BOOL, BOOL, ..., BOOL]
+        """
+        p_ranges = []
+        for wall in walls:
+            agent_pos = agent.state.p_pos
+            wall_pos = wall.state.p_pos
+            wall_dir = np.array([1, 0] if wall.W > wall.L else [0, 1])
+            if all(wall_dir == np.array([1, 0])):
+                lidar_dir = np.array([0, wall_pos[1] - agent_pos[1]])
+            else:
+                lidar_dir = np.array([wall_pos[0] - agent_pos[0], 0])
+            if all(lidar_dir == np.array([0, 0])): # singular matrix
+                inter_pos = agent_pos
+            else:
+                inter_pos = self.intersection(agent_pos, lidar_dir, wall_pos, wall_dir)
+            if inter_pos is None:
+                d = math.inf
+            else:
+                # Check inter_pos is on the wall
+                check = abs(inter_pos - wall_pos) <= np.array([wall.W/2, wall.L/2])
+                d = np.linalg.norm(inter_pos - agent_pos) if all(check) else math.inf
+            p_ranges.append(d)
+        dist_min = agent.size
+        collisions = [r < dist_min for r in p_ranges]
+        return collisions
+
+    def check_wall_distances(self, walls, agent):
+        """
+        Check whether wall collide with agent
+        return each wall whether it is collided with agent
+        return [dist to wall1, dist to wall2, ..., dist to wallN]
+        """
+        p_ranges = []
+        for wall in walls:
+            agent_pos = agent.state.p_pos
+            wall_pos = wall.state.p_pos
+            wall_dir = np.array([1, 0] if wall.W > wall.L else [0, 1])
+            if all(wall_dir == np.array([1, 0])):
+                lidar_dir = np.array([0, wall_pos[1] - agent_pos[1]])
+            else:
+                lidar_dir = np.array([wall_pos[0] - agent_pos[0], 0])
+            if all(lidar_dir == np.array([0, 0])): # singular matrix
+                inter_pos = agent_pos
+            else:
+                inter_pos = self.intersection(agent_pos, lidar_dir, wall_pos, wall_dir)
+            if inter_pos is None:
+                d = math.inf
+            else:
+                # Check inter_pos is on the wall
+                check = abs(inter_pos - wall_pos) <= np.array([wall.W/2, wall.L/2])
+                d = np.linalg.norm(inter_pos - agent_pos) if all(check) else math.inf
+            p_ranges.append(d)
+        return p_ranges
 
     def reward(self, agent, world):
         # Agents are rewarded based on minimum agent distance to each landmark, penalized for collisions
@@ -352,6 +386,11 @@ class Scenario(BaseScenario):
         """
         Calculate vectors' intersction point
         return np.array(POINT)
+        v = p1 + p1_dir*t
+        w = p2 + p2_dir*u
+        where v = w
+        [p1_dir, -p2_dir][t, u] = [p2 - p1]
+        [t, u] = inv([p1_dir, -p2_dir]).dot([p2 - p1])
         """
         try:
             A = np.column_stack((p1_dir, p2_dir*-1))
