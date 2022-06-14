@@ -186,15 +186,15 @@ class MultiAgentEnv(gym.Env):
                 if self.discrete_action_space:
                     if self.force_discrete_action:
                         u_index = np.argmax(action[0])
-                        if u_index == 0: agent.action.u = np.array([ 0,  0], dtype=np.float)
-                        if u_index == 1: agent.action.u = np.array([ 1,  0], dtype=np.float)
-                        if u_index == 2: agent.action.u = np.array([ 1,  1], dtype=np.float)
-                        if u_index == 3: agent.action.u = np.array([ 0,  1], dtype=np.float)
-                        if u_index == 4: agent.action.u = np.array([-1,  1], dtype=np.float)
-                        if u_index == 5: agent.action.u = np.array([-1,  0], dtype=np.float)
-                        if u_index == 6: agent.action.u = np.array([-1, -1], dtype=np.float)
-                        if u_index == 7: agent.action.u = np.array([ 0, -1], dtype=np.float)
-                        if u_index == 8: agent.action.u = np.array([ 1, -1], dtype=np.float)
+                        if u_index == 0: agent.action.u = np.array([ 0,  0], dtype=np.float32)
+                        if u_index == 1: agent.action.u = np.array([ 1,  0], dtype=np.float32)
+                        if u_index == 2: agent.action.u = np.array([ 1,  1], dtype=np.float32)
+                        if u_index == 3: agent.action.u = np.array([ 0,  1], dtype=np.float32)
+                        if u_index == 4: agent.action.u = np.array([-1,  1], dtype=np.float32)
+                        if u_index == 5: agent.action.u = np.array([-1,  0], dtype=np.float32)
+                        if u_index == 6: agent.action.u = np.array([-1, -1], dtype=np.float32)
+                        if u_index == 7: agent.action.u = np.array([ 0, -1], dtype=np.float32)
+                        if u_index == 8: agent.action.u = np.array([ 1, -1], dtype=np.float32)
                     else:
                         agent.action.u[0] += action[0][1] - action[0][2]
                         agent.action.u[1] += action[0][3] - action[0][4]
