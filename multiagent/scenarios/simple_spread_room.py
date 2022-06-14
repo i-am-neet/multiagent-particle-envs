@@ -236,6 +236,7 @@ class Scenario(BaseScenario):
         if dist < 0.1:
             rew += np.exp(-dist*10)
 
+        # Collision
         collision = False
         at_field = []
         if agent.collide:
@@ -246,18 +247,17 @@ class Scenario(BaseScenario):
                 at_field.append(at_force)
                 if self.is_collision(a, agent):
                     collision = True
-            for w in world.walls:
-                dist = np.sqrt(np.sum(np.square(agent.state.p_pos - w.state.p_pos)))
-                at_force = np.exp(-2*dist)
-                at_field.append(at_force)
-                if self.check_wall_collision(w, agent):
-                    collision = True
+            if any(self.check_wall_collision(world.walls, agent)):
+                collision = True
+            wall_dists = self.check_wall_distances(world.walls, agent)
+            at_forces = np.exp(-2*np.array(wall_dists)).tolist()
+            at_field += at_forces
         rew -= max(at_field)
 
         if collision:
             agent.collision_times += 1
-            rew -= 0.5
-            # rew -= 1/ (1 + np.exp(-agent.collision_times + 1))
+            # rew -= 0.5
+            rew -= 1/ (1 + np.exp(-agent.collision_times + 1))
 
         # Direction reward which compare A* and action
         scale = 0.01
@@ -275,7 +275,9 @@ class Scenario(BaseScenario):
         u = agent.action.u
         a_u_vec = u / np.linalg.norm(u, 1) if any(u) else u
 
-        if not all(a_u_vec == next_u_vec):
+        if all(u == np.array([0, 0])):
+            rew -= 0.4
+        elif not all(a_u_vec == next_u_vec):
             rew -= 0.2
 
         return rew
@@ -290,8 +292,8 @@ class Scenario(BaseScenario):
         if dist < 0.1:
             done = True
 
-        # if agent.collision_times > 5:
-        #     done = True
+        if agent.collision_times > 10:
+            done = True
 
         return done
 
