@@ -322,6 +322,7 @@ class Scenario(BaseScenario):
         return done, False
 
     def observation(self, agent, world):
+        neighbor_range = 0.3
         # get lidar scanner data
         ranges = [self.lidar(agent, world, 12)]
 
@@ -330,19 +331,37 @@ class Scenario(BaseScenario):
         #     entity_pos.append(entity.state.p_pos - agent.state.p_pos)
         landmark = world.landmarks[agent.id]
         landmark_pos.append(landmark.state.p_pos - agent.state.p_pos)
+
+        # Find out other's pos and goal
         other_pos = []
+        other_goal = []
         for other in world.agents:
             if other is agent: continue
-            # comm.append(other.state.c)
-            other_pos.append(other.state.p_pos - agent.state.p_pos)
+            other_pos.append(other.state.p_pos)
+            other_goal.append(world.landmarks[other.id].state.p_pos)
+        assert len(other_pos)==len(world.agents)-1
+        assert len(other_goal)==len(world.agents)-1
+
+        # Find the vector from agent to neighbor, and filter by neighbor_range
+        neighbor_pos = []
+        for op in other_pos:
+            dist = np.sqrt(np.sum(np.square(agent.state.p_pos - op)))
+            if dist < neighbor_range:
+                neighbor_pos.append(op - agent.state.p_pos)
+            else:
+                neighbor_pos.append(np.array([0, 0]))
+        assert len(neighbor_pos)==len(other_pos)
 
         # A*
         scale = 0.01
         p_start = tuple((agent.state.p_pos / scale).astype(int))
         p_goal = tuple((landmark.state.p_pos / scale).astype(int))
 
-        route = a_star.planning(p_start[0], p_start[1], p_goal[0], p_goal[1])
-        route = route[:-1] # abandon last elem (first point)
+        if np.linalg.norm(landmark_pos) < 0.1:
+            route = []
+        else:
+            route = a_star.planning(p_start[0], p_start[1], p_goal[0], p_goal[1])
+            route = route[:-1] # abandon last elem (first point)
 
         # next point of route according agent's pos (unit vector)
         next_dir = []
@@ -496,3 +515,66 @@ class Scenario(BaseScenario):
             return path
         except rospy.ServiceException as e:
             print("Service call failed: {}".format(e))
+
+    def other_gridmap(self, agent, other, grid_size=9, grid_w=0.075, grid_h=0.075):
+        """
+        Draw the occupied grid map about others' position
+        params:
+            grid_size: Define grid that grid is (grid * grid) array
+            grid_w: Define each grid's width
+            grid_h: Define each grid's height
+        vx = other_x - agent_x
+        vy = other_y - agent_y
+        grid_pos_x = vx / grid_w
+        grid_pos_y = vy / grid_h
+        IF grid_pos in grid's size
+        THEN marked 1 to represent there is a agent occupied
+        Return:
+            [gridmap.flatten()]
+        """
+
+        grid = np.zeros((grid_size, grid_size))
+
+        for op in other:
+            v = op - agent.state.p_pos
+            vx = v[0]
+            vy = v[1]
+            # project to grid's coordination
+            x =  int((vx + np.sign(vx)*grid_w/2) / grid_w) + (grid_size//2)
+            y = (int((vy + np.sign(vy)*grid_w/2) / grid_h) - (grid_size//2))*-1
+            if x in range(grid_size) and y in range(grid_size):
+                grid[y][x] = 1
+
+        return [grid.flatten()]
+
+    def other_plan_gridmap(self, agent, other, other_goal, grid_size=9, grid_w=0.075, grid_h=0.075):
+        """
+        Draw the occupied grid map about others' plan
+        IFF other in grid's range
+        THEN draw the path of other on the grid map
+        Return:
+            [gridmap.flatten()]
+        """
+
+        scale = 0.01
+        grid = np.zeros((grid_size, grid_size))
+
+        for op, og in zip(other, other_goal):
+            v = op - agent.state.p_pos
+            vx = v[0]
+            vy = v[1]
+            # project to grid's coordination
+            x =  int((vx + np.sign(vx)*grid_w/2) / grid_w) + (grid_size//2)
+            y = (int((vy + np.sign(vy)*grid_w/2) / grid_h) - (grid_size//2))*-1
+            if x in range(grid_size) and y in range(grid_size): # IFF other in range
+                p_start = tuple((op / scale).astype(int))
+                p_goal = tuple((og / scale).astype(int))
+                route = a_star.planning(p_start[0], p_start[1], p_goal[0], p_goal[1])
+                for p in reversed(route):
+                    px = int((p[0] + np.sign(p[0])*grid_w/2) / grid_w) + (grid_size//2)
+                    py = (int((p[1] + np.sign(p[1])*grid_w/2) / grid_h) - (grid_size//2))*-1
+                    if px in range(grid_size) and py in range(grid_size):
+                        grid[py][px] = 1
+                    else:
+                        break
+        return [grid.flatten()]
