@@ -253,6 +253,7 @@ class AStarPlanner:
 
 
 def main():
+    show_animation = True
     print(__file__ + " start!!")
 
     # start and goal position
@@ -260,7 +261,7 @@ def main():
     sy = 14.0  # [m]
     gx = 50.0  # [m]
     gy = 50.0  # [m]
-    grid_size = 5.0  # [m]
+    grid_size = 1.0  # [m]
     robot_radius = 10.0  # [m]
 
     # # set obstacle positions

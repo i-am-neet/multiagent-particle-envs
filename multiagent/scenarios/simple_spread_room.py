@@ -101,9 +101,9 @@ class Scenario(BaseScenario):
                 p = np.random.uniform(-0.8, +0.8, world.dim_p)
                 tmpA = Agent()
                 tmpA.state.p_pos = p
-                tmpA.size = 0.1
+                tmpA.size = 0.2
                 collide_walls = self.check_wall_collision(world.walls, tmpA)
-                collide_agents = [ np.linalg.norm(world.agents[j].state.p_pos - tmpA.state.p_pos) < tmpA.size*2 for j in range(i)]
+                collide_agents = [ np.linalg.norm(world.agents[j].state.p_pos - tmpA.state.p_pos) < tmpA.size for j in range(i)]
                 if not any(collide_walls) and not any(collide_agents):
                     break
             # agent.state.p_pos = np.random.uniform(-0.8, +0.8, world.dim_p)
@@ -125,10 +125,10 @@ class Scenario(BaseScenario):
                     print(f"Try to escape with {p}")
                     tmpL = Landmark()
                     tmpL.state.p_pos = p
-                    tmpL.size = 0.1 # gap size
+                    tmpL.size = 0.2 # gap size
                     collide_walls = self.check_wall_collision(world.walls, tmpL)
-                    collide_landmarks = [ np.linalg.norm(world.landmarks[j].state.p_pos - tmpL.state.p_pos) < tmpL.size*2 for j in range(i)]
-                    collide_agents = [ np.linalg.norm(a.state.p_pos - tmpL.state.p_pos) < tmpL.size*2 for a in world.agents]
+                    collide_landmarks = [ np.linalg.norm(world.landmarks[j].state.p_pos - tmpL.state.p_pos) < tmpL.size for j in range(i)]
+                    collide_agents = [ np.linalg.norm(a.state.p_pos - tmpL.state.p_pos) < tmpL.size for a in world.agents]
                     if not any(collide_walls) and not any(collide_landmarks) and not any(collide_agents):
                         break
                     st = time.time()
@@ -270,14 +270,17 @@ class Scenario(BaseScenario):
         if collision:
             agent.collision_times += 1
             # rew -= 0.5
-            rew -= 1/ (1 + np.exp(-agent.collision_times + 1))
+            rew -= 2 / (1 + np.exp(-agent.collision_times + 1))
 
         # Direction reward which compare A* and action
         scale = 0.01
         p_start = tuple((agent.state.p_pos / scale).astype(int))
         p_goal = tuple((l.state.p_pos / scale).astype(int))
 
-        route = a_star.planning(p_start[0], p_start[1], p_goal[0], p_goal[1])
+        if self.route_n[agent.id]:
+            route = self.route_n[agent.id]
+        else:
+            route = a_star.planning(p_start[0], p_start[1], p_goal[0], p_goal[1])
 
         if len(route) >= 2:
             next_p_vec = np.array(route[-2]) - np.array(route[-1])
@@ -308,7 +311,11 @@ class Scenario(BaseScenario):
         if agent.collision_times > 10:
             done = True
 
-        return done
+        if self.done_flag:
+            self.done_flag = False
+            return True, True
+
+        return done, False
 
     def observation(self, agent, world):
         # get lidar scanner data
@@ -350,25 +357,29 @@ class Scenario(BaseScenario):
         else:
             next_points = next_points.flatten()
 
-        # neighbors' goal
-        neighbor_range = 0.8
+        # Find the vector from agent to neighbor's goal, and filter by neighbor_range
         neighbors_goal = []
-        for other in world.agents:
-            if other is agent: continue
-            dist = np.sqrt(np.sum(np.square(agent.state.p_pos - other.state.p_pos)))
+        for og in other_goal:
+            dist = np.sqrt(np.sum(np.square(agent.state.p_pos - og)))
             if dist < neighbor_range:
-                nl = world.landmarks[other.id]
-                neighbors_goal.append(nl.state.p_pos - agent.state.p_pos)
+                neighbors_goal.append(og - agent.state.p_pos)
             else:
                 neighbors_goal.append(np.array([0, 0]))
-        assert len(neighbors_goal)==len(world.agents)-1
+        assert len(neighbors_goal)==len(other_goal)
 
-        # return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + landmark_pos + other_pos)
-        # return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + landmark_pos + other_pos + ranges)
-        # return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + landmark_pos + other_pos + ranges + next_dir + [next_points])
+        # TODO fake agents
+        # # Insert fake agents when amount is different between training and restoring
+        # if self.active_num < self.amount:
+        #     for i in range(self.amount - self.active_num - 1): # TRAINED_AMOUNT - ACTIVE_NUM - SELF
+        #         other_pos.append(np.array([0, 0]))
+        #         neighbors_goal.append(np.array([0, 0]))
+
         # Personal info: [agent.state.p_vel] + [agent.state.p_pos] + landmark_pos + ranges + next_dir + [next_points]
         # Collaborate info: other_pos + neighbors_goal
-        return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + landmark_pos + ranges + next_dir + [next_points] + other_pos + neighbors_goal)
+        # return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + landmark_pos + ranges + next_dir + [next_points] + neighbor_pos + neighbors_goal)
+        other_gridmap = self.other_gridmap(agent, other_pos)
+        other_plan_gridmap = self.other_plan_gridmap(agent, other_pos, other_goal)
+        return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + landmark_pos + ranges + next_dir + [next_points] + other_gridmap + other_plan_gridmap)
 
     def expert_action(self, agent, world):
         # A*
@@ -379,6 +390,9 @@ class Scenario(BaseScenario):
 
         route = a_star.planning(p_start[0], p_start[1], p_goal[0], p_goal[1])
 
+        # if using this function, record route to avoid re-planing again
+        self.route_n[agent.id] = route
+
         if len(route) >= 2:
             next_p_vec = np.array(route[-2]) - np.array(route[-1])
             next_u_vec = next_p_vec / np.linalg.norm(next_p_vec, 1) # get Norm-1 distance
@@ -387,6 +401,7 @@ class Scenario(BaseScenario):
             if np.sqrt(np.sum(np.square(agent.state.p_pos - landmark.state.p_pos))) >= 0.1: # log for debugging
                 print("WTF")
                 print(f"{agent.state.p_pos - landmark.state.p_pos}")
+                self.done_flag = True
 
         u_index = 0
         if all(np.sign(next_u_vec) == np.array([ 0,  0])): u_index = 0

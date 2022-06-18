@@ -119,6 +119,17 @@ class MultiAgentEnv(gym.Env):
 
             info_n['n'].append(self._get_info(agent))
 
+        # check done_flag from simple_spread_room
+        for i, d in enumerate(done_n):
+            if len(d) == 2:
+                if all(d):
+                    print(f"agent {i} got trouble, resetting")
+                    done_n = [True] * len(done_n)
+                    break
+                else:
+                    done_n[i] = d[0]
+
+        print(done_n)
         # all agents get total reward in cooperative case
         reward = np.sum(reward_n)
         if self.shared_reward:
@@ -130,7 +141,7 @@ class MultiAgentEnv(gym.Env):
     def reset(self, testing=False):
         # reset world
         if testing:
-            self.reset_callback(self.world, random.choice([0, 1, 2, 3, 4]))
+            self.reset_callback(self.world, random.choice([0, 1, 2, 3, 4, 5]))
         else:
             self.reset_callback(self.world, self.reset.matter, True) # matter is room id
         # reset renderer
