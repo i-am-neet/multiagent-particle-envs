@@ -416,8 +416,9 @@ class Scenario(BaseScenario):
         else:
             next_u_vec = np.array([0, 0])
             if np.sqrt(np.sum(np.square(agent.state.p_pos - landmark.state.p_pos))) >= 0.1: # log for debugging
-                print("WTF")
-                print(f"{agent.state.p_pos - landmark.state.p_pos}")
+                # FIXME: why A* got trouble?
+                #print("WTF")
+                #print(f"{agent.state.p_pos - landmark.state.p_pos}")
                 self.done_flag = True
 
         u_index = 0
