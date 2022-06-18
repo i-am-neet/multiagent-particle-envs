@@ -93,7 +93,7 @@ class MultiAgentEnv(gym.Env):
         expert_action_n = []
         self.agents = self.world.policy_agents
         if self.expert_callback is None:
-            return [np.zeors(9) for _ in range(len(self.agents))]
+            return [np.zeros(9) for _ in range(len(self.agents))]
         # get expert action from each agent
         for agent in self.agents:
             expert_action_n.append(self.expert_callback(agent, self.world))
@@ -129,7 +129,6 @@ class MultiAgentEnv(gym.Env):
                 else:
                     done_n[i] = d[0]
 
-        print(done_n)
         # all agents get total reward in cooperative case
         reward = np.sum(reward_n)
         if self.shared_reward:
