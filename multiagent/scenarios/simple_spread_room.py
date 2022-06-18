@@ -357,6 +357,40 @@ class Scenario(BaseScenario):
         # Collaborate info: other_pos + neighbors_goal
         return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + landmark_pos + ranges + next_dir + [next_points] + other_pos + neighbors_goal)
 
+    def expert_action(self, agent, world):
+        # A*
+        landmark = world.landmarks[agent.id]
+        scale = 0.01
+        p_start = tuple((agent.state.p_pos / scale).astype(int))
+        p_goal = tuple((landmark.state.p_pos / scale).astype(int))
+
+        route = a_star.planning(p_start[0], p_start[1], p_goal[0], p_goal[1])
+
+        if len(route) >= 2:
+            next_p_vec = np.array(route[-2]) - np.array(route[-1])
+            next_u_vec = next_p_vec / np.linalg.norm(next_p_vec, 1) # get Norm-1 distance
+        else:
+            next_u_vec = np.array([0, 0])
+            if np.sqrt(np.sum(np.square(agent.state.p_pos - landmark.state.p_pos))) >= 0.1: # log for debugging
+                print("WTF")
+                print(f"{agent.state.p_pos - landmark.state.p_pos}")
+
+        u_index = 0
+        if all(np.sign(next_u_vec) == np.array([ 0,  0])): u_index = 0
+        if all(np.sign(next_u_vec) == np.array([ 1,  0])): u_index = 1
+        if all(np.sign(next_u_vec) == np.array([ 1,  1])): u_index = 2
+        if all(np.sign(next_u_vec) == np.array([ 0,  1])): u_index = 3
+        if all(np.sign(next_u_vec) == np.array([-1,  1])): u_index = 4
+        if all(np.sign(next_u_vec) == np.array([-1,  0])): u_index = 5
+        if all(np.sign(next_u_vec) == np.array([-1, -1])): u_index = 6
+        if all(np.sign(next_u_vec) == np.array([ 0, -1])): u_index = 7
+        if all(np.sign(next_u_vec) == np.array([ 1, -1])): u_index = 8
+
+        # one-hot action for agent's action space
+        expert_action = np.zeros(9)
+        expert_action[u_index] = 1
+        return expert_action
+
     def lidar(self, agent, world, num_scan):
         """
         Return lidar scan's ranges [] by agent's position & scan_num

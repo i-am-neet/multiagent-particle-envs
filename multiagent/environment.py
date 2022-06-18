@@ -18,7 +18,8 @@ class MultiAgentEnv(gym.Env):
 
     def __init__(self, world, reset_callback=None, reward_callback=None,
                  observation_callback=None, info_callback=None,
-                 done_callback=None, shared_viewer=True):
+                 done_callback=None, shared_viewer=True,
+                 expert_callback=None):
 
         self.world = world
         self.agents = self.world.policy_agents
@@ -30,6 +31,7 @@ class MultiAgentEnv(gym.Env):
         self.observation_callback = observation_callback
         self.info_callback = info_callback
         self.done_callback = done_callback
+        self.expert_callback = expert_callback
         # environment parameters
         self.discrete_action_space = True
         # if true, action is a number 0...N, otherwise action is a one-hot N-dimensional vector
@@ -85,6 +87,18 @@ class MultiAgentEnv(gym.Env):
             self.viewers = [None] * self.n
             self.viewers_world = [None] * self.n
         self._reset_render()
+
+    # get expert action
+    def get_expert_action_n(self):
+        expert_action_n = []
+        self.agents = self.world.policy_agents
+        if self.expert_callback is None:
+            return [np.zeors(9) for _ in range(len(self.agents))]
+        # get expert action from each agent
+        for agent in self.agents:
+            expert_action_n.append(self.expert_callback(agent, self.world))
+
+        return expert_action_n
 
     def step(self, action_n):
         obs_n = []
