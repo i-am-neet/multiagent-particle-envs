@@ -123,8 +123,9 @@ class MultiAgentEnv(gym.Env):
         for i, d in enumerate(done_n):
             if len(d) == 2:
                 if all(d):
-                    print(f"agent {i} got trouble, resetting")
+                    # print(f"agent {i} got trouble, resetting")
                     done_n = [True] * len(done_n)
+                    info_n['n'][i] = f"agent {i} got trouble, resetting"
                     break
                 else:
                     done_n[i] = d[0]
