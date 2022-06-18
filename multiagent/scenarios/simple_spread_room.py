@@ -118,6 +118,19 @@ class Scenario(BaseScenario):
             while (True):
                 if time.time() - st > 5:
                     print(f"Take times!!! agent_pos: {world.agents[i].state.p_pos}, matter: {self.reset_world.matter}")
+                    """
+                    Stocks! try to escape w/ random pos...
+                    """
+                    p = np.random.uniform(-0.8, +0.8, world.dim_p)
+                    print(f"Try to escape with {p}")
+                    tmpL = Landmark()
+                    tmpL.state.p_pos = p
+                    tmpL.size = 0.1 # gap size
+                    collide_walls = self.check_wall_collision(world.walls, tmpL)
+                    collide_landmarks = [ np.linalg.norm(world.landmarks[j].state.p_pos - tmpL.state.p_pos) < tmpL.size*2 for j in range(i)]
+                    collide_agents = [ np.linalg.norm(a.state.p_pos - tmpL.state.p_pos) < tmpL.size*2 for a in world.agents]
+                    if not any(collide_walls) and not any(collide_landmarks) and not any(collide_agents):
+                        break
                     st = time.time()
                 if scheduling:
                     ap = world.agents[i].state.p_pos
