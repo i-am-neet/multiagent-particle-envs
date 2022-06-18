@@ -31,6 +31,10 @@ class Scenario(BaseScenario):
         num_agents = amount
         num_landmarks = amount
         world.collaborative = True
+
+        self.route_n = [None]*amount
+        self.done_flag = False
+
         # add agents
         world.agents = [Agent() for i in range(num_agents)]
         for i, agent in enumerate(world.agents):
@@ -247,7 +251,7 @@ class Scenario(BaseScenario):
 
         # Arrived
         if dist < 0.1:
-            rew += np.exp(-dist*10)
+            rew += np.exp(-dist*10)*5
 
         # Collision
         collision = False
@@ -292,9 +296,9 @@ class Scenario(BaseScenario):
         a_u_vec = u / np.linalg.norm(u, 1) if any(u) else u
 
         if all(u == np.array([0, 0])):
-            rew -= 0.4
+            rew -= 0.8
         elif not all(a_u_vec == next_u_vec):
-            rew -= 0.2
+            rew -= 0.4
 
         return rew
 
@@ -367,18 +371,12 @@ class Scenario(BaseScenario):
                 neighbors_goal.append(np.array([0, 0]))
         assert len(neighbors_goal)==len(other_goal)
 
-        # TODO fake agents
-        # # Insert fake agents when amount is different between training and restoring
-        # if self.active_num < self.amount:
-        #     for i in range(self.amount - self.active_num - 1): # TRAINED_AMOUNT - ACTIVE_NUM - SELF
-        #         other_pos.append(np.array([0, 0]))
-        #         neighbors_goal.append(np.array([0, 0]))
-
         # Personal info: [agent.state.p_vel] + [agent.state.p_pos] + landmark_pos + ranges + next_dir + [next_points]
         # Collaborate info: other_pos + neighbors_goal
         # return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + landmark_pos + ranges + next_dir + [next_points] + neighbor_pos + neighbors_goal)
         other_gridmap = self.other_gridmap(agent, other_pos)
         other_plan_gridmap = self.other_plan_gridmap(agent, other_pos, other_goal)
+
         return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + landmark_pos + ranges + next_dir + [next_points] + other_gridmap + other_plan_gridmap)
 
     def expert_action(self, agent, world):
