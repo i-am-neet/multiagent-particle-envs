@@ -72,9 +72,11 @@ class Scenario(BaseScenario):
             wall.collide = True
             wall.movable = False
 
-    # TODO check schedules is working
     @EventCounter(schedules=[400, 800, 1600, 3200, 6400], matters=[0.2, 0.4, 0.8, 1.2, 1.6, 2.0])
     def reset_world(self, world, room_num=0, scheduling=False):
+        if self.reset_world.__func__.counter == self.reset_world.__func__.schedules[0]:
+            print(f"########## Change matter: {self.reset_world.matter} ##########")
+
         # random properties for agents
         for i, agent in enumerate(world.agents):
             agent.color = np.array(color_args[f'color_{i}'])
@@ -299,6 +301,8 @@ class Scenario(BaseScenario):
             rew -= 0.8
         elif not all(a_u_vec == next_u_vec):
             rew -= 0.4
+        else:
+            rew -= 0.2
 
         return rew
 
@@ -361,20 +365,25 @@ class Scenario(BaseScenario):
             route = []
         else:
             route = a_star.planning(p_start[0], p_start[1], p_goal[0], p_goal[1])
-            route = route[:-1] # abandon last elem (first point)
+            # route = route[:-1] # abandon last elem (first point)
 
         # next point of route according agent's pos (unit vector)
         next_dir = []
-        if len(route) != 0:
-            next_p_vec = np.array(route[-1]) - np.array(p_start)
-            next_u_vec = next_p_vec / np.linalg.norm(next_p_vec)
+        if len(route) >= 2:
+            next_p_vec = np.array(route[-2]) - np.array(route[-1])
+            next_u_vec = next_p_vec / np.linalg.norm(next_p_vec, 1) # get Norm-1 distance
         else:
             next_u_vec = np.array([0, 0])
+            if np.sqrt(np.sum(np.square(agent.state.p_pos - landmark.state.p_pos))) > 0.1: # log for debugging
+                # FIXME: why A* got trouble?
+                #print("WTF")
+                # print(f"{agent.id}: {agent.state.p_pos - landmark.state.p_pos}")
+                self.done_flag = True
         next_dir.append(next_u_vec)
 
         # rencent points of route according agent's pos (particle env coord)
         future_size = 8
-        next_points = (np.array(route[-future_size:]) - np.array(p_start))*scale if len(route) != 0 else np.array([0, 0]*future_size)
+        next_points = (np.array(route[-future_size-1:-1]) - np.array(p_start))*scale if len(route) >= 2 else np.array([0, 0]*future_size)
         if len(next_points) < future_size:
             next_points = np.append(next_points, [0, 0]*(future_size - len(next_points)))
         else:
@@ -415,11 +424,6 @@ class Scenario(BaseScenario):
             next_u_vec = next_p_vec / np.linalg.norm(next_p_vec, 1) # get Norm-1 distance
         else:
             next_u_vec = np.array([0, 0])
-            if np.sqrt(np.sum(np.square(agent.state.p_pos - landmark.state.p_pos))) >= 0.1: # log for debugging
-                # FIXME: why A* got trouble?
-                #print("WTF")
-                #print(f"{agent.state.p_pos - landmark.state.p_pos}")
-                self.done_flag = True
 
         u_index = 0
         if all(np.sign(next_u_vec) == np.array([ 0,  0])): u_index = 0
@@ -517,7 +521,7 @@ class Scenario(BaseScenario):
         except rospy.ServiceException as e:
             print("Service call failed: {}".format(e))
 
-    def other_gridmap(self, agent, other, grid_size=9, grid_w=0.075, grid_h=0.075):
+    def other_gridmap(self, agent, other, grid_size=21, grid_w=0.05, grid_h=0.05):
         """
         Draw the occupied grid map about others' position
         params:
@@ -548,7 +552,8 @@ class Scenario(BaseScenario):
 
         return [grid.flatten()]
 
-    def other_plan_gridmap(self, agent, other, other_goal, grid_size=9, grid_w=0.075, grid_h=0.075):
+    # TODO: test this function
+    def other_plan_gridmap(self, agent, other, other_goal, grid_size=21, grid_w=0.05, grid_h=0.05):
         """
         Draw the occupied grid map about others' plan
         IFF other in grid's range
@@ -560,7 +565,7 @@ class Scenario(BaseScenario):
         scale = 0.01
         grid = np.zeros((grid_size, grid_size))
 
-        for op, og in zip(other, other_goal):
+        for i, (op, og) in enumerate(zip(other, other_goal)):
             v = op - agent.state.p_pos
             vx = v[0]
             vy = v[1]
@@ -571,9 +576,13 @@ class Scenario(BaseScenario):
                 p_start = tuple((op / scale).astype(int))
                 p_goal = tuple((og / scale).astype(int))
                 route = a_star.planning(p_start[0], p_start[1], p_goal[0], p_goal[1])
-                for p in reversed(route):
-                    px = int((p[0] + np.sign(p[0])*grid_w/2) / grid_w) + (grid_size//2)
-                    py = (int((p[1] + np.sign(p[1])*grid_w/2) / grid_h) - (grid_size//2))*-1
+                route = np.array(route)*scale
+                for j, rp in enumerate(reversed(route)):
+                    rv = rp - agent.state.p_pos
+                    rvx = rv[0]
+                    rvy = rv[1]
+                    px = int((rvx + np.sign(rvx)*grid_w/2) / grid_w) + (grid_size//2)
+                    py = (int((rvy + np.sign(rvy)*grid_w/2) / grid_h) - (grid_size//2))*-1
                     if px in range(grid_size) and py in range(grid_size):
                         grid[py][px] = 1
                     else:
