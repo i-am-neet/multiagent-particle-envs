@@ -74,8 +74,8 @@ class Scenario(BaseScenario):
 
     @EventCounter(schedules=[400, 800, 1600, 3200, 6400], matters=[0.2, 0.4, 0.8, 1.2, 1.6, 2.0])
     def reset_world(self, world, room_num=0, scheduling=False):
-        if self.reset_world.__func__.counter == self.reset_world.__func__.schedules[0]:
-            print(f"########## Change matter: {self.reset_world.matter} ##########")
+        # if self.reset_world.__func__.counter == self.reset_world.__func__.schedules[0]:
+        #     print(f"########## Change matter: {self.reset_world.matter} ##########")
 
         # random properties for agents
         for i, agent in enumerate(world.agents):
