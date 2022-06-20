@@ -19,7 +19,7 @@ class RoomArgs(object):
 
         # A* configs
         self.grid_size = 2.0  # [m]
-        self.robot_radius = 10.0  # [m]
+        self.robot_radius = 5.0  # [m]
 
     def get_room(self, room_id=0):
         self.room_num = room_id
