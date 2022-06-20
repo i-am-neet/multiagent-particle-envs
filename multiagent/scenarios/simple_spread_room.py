@@ -249,7 +249,8 @@ class Scenario(BaseScenario):
 
         l = world.landmarks[agent.id]
         dist = np.sqrt(np.sum(np.square(agent.state.p_pos - l.state.p_pos)))
-        rew -= 1 / (1 + np.exp(-dist*4+2)) # sigmoid
+        # rew -= 1 / (1 + np.exp(-dist*4+2)) # sigmoid
+        rew -= 1 / (1 + np.exp(-dist/2+2)) # sigmoid
 
         # Arrived
         if dist < 0.1:
@@ -276,17 +277,15 @@ class Scenario(BaseScenario):
         if collision:
             agent.collision_times += 1
             # rew -= 0.5
-            rew -= 2 / (1 + np.exp(-agent.collision_times + 1))
+            # rew -= 2 / (1 + np.exp(-agent.collision_times + 1))
+            rew -= agent.collision_times * 0.2
 
         # Direction reward which compare A* and action
         scale = 0.01
         p_start = tuple((agent.state.p_pos / scale).astype(int))
         p_goal = tuple((l.state.p_pos / scale).astype(int))
 
-        if self.route_n[agent.id]:
-            route = self.route_n[agent.id]
-        else:
-            route = a_star.planning(p_start[0], p_start[1], p_goal[0], p_goal[1])
+        route = self.route_n[agent.id]
 
         if len(route) >= 2:
             next_p_vec = np.array(route[-2]) - np.array(route[-1])
@@ -314,7 +313,8 @@ class Scenario(BaseScenario):
         dist = np.sqrt(np.sum(np.square(agent.state.p_pos - l.state.p_pos)))
 
         if dist < 0.1:
-            done = True
+            # done = True
+            pass
 
         if agent.collision_times > 10:
             done = True
@@ -327,8 +327,8 @@ class Scenario(BaseScenario):
 
     def observation(self, agent, world):
         neighbor_range = 0.3
-        # get lidar scanner data
-        ranges = [self.lidar(agent, world, 12)]
+        # get lidar scanner data, and rescale impact factor
+        ranges = [np.exp(-1*self.lidar(agent, world, 12))*10]
 
         landmark_pos = []
         # for entity in world.landmarks:  # world.entities: # get positions of all entities in this agent's reference frame
@@ -367,6 +367,8 @@ class Scenario(BaseScenario):
             route = a_star.planning(p_start[0], p_start[1], p_goal[0], p_goal[1])
             # route = route[:-1] # abandon last elem (first point)
 
+        self.route_n[agent.id] = route
+
         # next point of route according agent's pos (unit vector)
         next_dir = []
         if len(route) >= 2:
@@ -379,6 +381,7 @@ class Scenario(BaseScenario):
                 #print("WTF")
                 # print(f"{agent.id}: {agent.state.p_pos - landmark.state.p_pos}")
                 self.done_flag = True
+                print(f"{p_start} --> {p_goal}")
         next_dir.append(next_u_vec)
 
         # rencent points of route according agent's pos (particle env coord)
@@ -403,21 +406,14 @@ class Scenario(BaseScenario):
         # Collaborate info: other_pos + neighbors_goal
         # return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + landmark_pos + ranges + next_dir + [next_points] + neighbor_pos + neighbors_goal)
         other_gridmap = self.other_gridmap(agent, other_pos)
-        other_plan_gridmap = self.other_plan_gridmap(agent, other_pos, other_goal)
+        # other_plan_gridmap = self.other_plan_gridmap(agent, other_pos, other_goal)
 
-        return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + landmark_pos + ranges + next_dir + [next_points] + other_gridmap + other_plan_gridmap)
+        # return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + landmark_pos + ranges + next_dir + [next_points] + other_gridmap + other_plan_gridmap)
+        return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + landmark_pos + next_dir + [next_points] + ranges + other_gridmap)
 
     def expert_action(self, agent, world):
-        # A*
-        landmark = world.landmarks[agent.id]
-        scale = 0.01
-        p_start = tuple((agent.state.p_pos / scale).astype(int))
-        p_goal = tuple((landmark.state.p_pos / scale).astype(int))
 
-        route = a_star.planning(p_start[0], p_start[1], p_goal[0], p_goal[1])
-
-        # if using this function, record route to avoid re-planing again
-        self.route_n[agent.id] = route
+        route = self.route_n[agent.id]
 
         if len(route) >= 2:
             next_p_vec = np.array(route[-2]) - np.array(route[-1])
