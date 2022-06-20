@@ -145,7 +145,9 @@ class MultiAgentEnv(gym.Env):
         if testing:
             self.reset_callback(self.world, random.choice([0, 1, 2, 3, 4, 5]))
         else:
-            self.reset_callback(self.world, self.reset.matter, True) # matter is room id
+            # FIXME Fixed Room Testing
+            # self.reset_callback(self.world, self.reset.matter, True) # matter is room id
+            self.reset_callback(self.world, 1, True) # matter is room id
         # reset renderer
         self._reset_render()
         # record observations for each agent
