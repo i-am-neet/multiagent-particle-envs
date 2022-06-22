@@ -31,16 +31,16 @@ class RoomArgs(object):
             wall_shapes  = [[T, 2], [2, T], [T, 2], [2, T]]
             self.wall_num = len(wall_centers)
             # set obstacle positions for A*
-            for i in range(-100, 100):
+            for i in range(-100, 101):
                 ox.append(i)
                 oy.append(-100)
-            for i in range(-100, 100):
+            for i in range(-100, 101):
                 ox.append(-100)
                 oy.append(i)
-            for i in range(-100, 100):
+            for i in range(-100, 101):
                 ox.append(i)
                 oy.append(100)
-            for i in range(-100, 100):
+            for i in range(-100, 101):
                 ox.append(100)
                 oy.append(i)
         if room_id == 1: # easy-2-walls
@@ -50,22 +50,22 @@ class RoomArgs(object):
             wall_shapes  = [[T, 2], [2, T], [T, 2], [2, T], [T, 0.7], [T, 0.7]]
             self.wall_num = len(wall_centers)
             # set obstacle positions for A*
-            for i in range(-100, 100):
+            for i in range(-100, 101):
                 ox.append(i)
                 oy.append(-100.0)
-            for i in range(-100, 100):
+            for i in range(-100, 101):
                 ox.append(-100.0)
                 oy.append(i)
-            for i in range(-100, 100):
+            for i in range(-100, 101):
                 ox.append(i)
                 oy.append(100.0)
-            for i in range(-100, 100):
+            for i in range(-100, 101):
                 ox.append(100.0)
                 oy.append(i)
-            for i in range(-100, -35):
+            for i in range(-100, -34):
                 ox.append(0.0)
                 oy.append(i)
-            for i in range(35, 100):
+            for i in range(35, 101):
                 ox.append(0.0)
                 oy.append(i)
         if room_id == 2: # easy-4-walls
@@ -75,28 +75,28 @@ class RoomArgs(object):
             wall_shapes  = [[T, 2], [2, T], [T, 2], [2, T], [0.7, T], [T, 0.7], [0.7, T], [T, 0.7]]
             self.wall_num = len(wall_centers)
             # set obstacle positions for A*
-            for i in range(-100, 100):
+            for i in range(-100, 101):
                 ox.append(i)
                 oy.append(-100)
-            for i in range(-100, 100):
+            for i in range(-100, 101):
                 ox.append(-100)
                 oy.append(i)
-            for i in range(-100, 100):
+            for i in range(-100, 101):
                 ox.append(i)
                 oy.append(100)
-            for i in range(-100, 100):
+            for i in range(-100, 101):
                 ox.append(100)
                 oy.append(i)
-            for i in range(-100, -35):
+            for i in range(-100, -34):
                 ox.append(i)
                 oy.append(0)
-            for i in range(-100, -35):
+            for i in range(-100, -34):
                 ox.append(0)
                 oy.append(i)
-            for i in range(35, 100):
+            for i in range(35, 101):
                 ox.append(i)
                 oy.append(0)
-            for i in range(35, 100):
+            for i in range(35, 101):
                 ox.append(0)
                 oy.append(i)
 
@@ -107,19 +107,19 @@ class RoomArgs(object):
             wall_shapes  = [[T, 2], [2, T], [T, 2], [2, T], [1.2, T]]
             self.wall_num = len(wall_centers)
             # set obstacle positions for A*
-            for i in range(-100, 100):
+            for i in range(-100, 101):
                 ox.append(i)
                 oy.append(-100)
-            for i in range(-100, 100):
+            for i in range(-100, 101):
                 ox.append(-100)
                 oy.append(i)
-            for i in range(-100, 100):
+            for i in range(-100, 101):
                 ox.append(i)
                 oy.append(100)
-            for i in range(-100, 100):
+            for i in range(-100, 101):
                 ox.append(100)
                 oy.append(i)
-            for i in range(-60, 60):
+            for i in range(-60, 61):
                 ox.append(i)
                 oy.append(0)
 
@@ -130,22 +130,22 @@ class RoomArgs(object):
             wall_shapes  = [[T, 2], [2, T], [T, 2], [2, T], [1.2, T], [T, 1.2]]
             self.wall_num = len(wall_centers)
             # set obstacle positions for A*
-            for i in range(-100, 100):
+            for i in range(-100, 101):
                 ox.append(i)
                 oy.append(-100)
-            for i in range(-100, 100):
+            for i in range(-100, 101):
                 ox.append(-100)
                 oy.append(i)
-            for i in range(-100, 100):
+            for i in range(-100, 101):
                 ox.append(i)
                 oy.append(100)
-            for i in range(-100, 100):
+            for i in range(-100, 101):
                 ox.append(100)
                 oy.append(i)
-            for i in range(-60, 60):
+            for i in range(-60, 61):
                 ox.append(i)
                 oy.append(0)
-            for i in range(-60, 60):
+            for i in range(-60, 61):
                 ox.append(0)
                 oy.append(i)
 
@@ -156,31 +156,31 @@ class RoomArgs(object):
             wall_shapes  = [[T, 2], [2, T], [T, 2], [2, T], [1, T], [T, 0.7], [T, 0.7], [0.7, T], [T, 0.7]]
             self.wall_num = len(wall_centers)
             # set obstacle positions for A*
-            for i in range(-100, 100):
+            for i in range(-100, 101):
                 ox.append(i)
                 oy.append(-100)
-            for i in range(-100, 100):
+            for i in range(-100, 101):
                 ox.append(-100)
                 oy.append(i)
-            for i in range(-100, 100):
+            for i in range(-100, 101):
                 ox.append(i)
                 oy.append(100)
-            for i in range(-100, 100):
+            for i in range(-100, 101):
                 ox.append(100)
                 oy.append(i)
             for i in range(-100, 0):
                 ox.append(i)
                 oy.append(0)
-            for i in range(35, 100):
+            for i in range(35, 101):
                 ox.append(0)
                 oy.append(i)
-            for i in range(0, 70):
+            for i in range(0, 71):
                 ox.append(30)
                 oy.append(i)
-            for i in range(30, 100):
+            for i in range(30, 101):
                 ox.append(i)
                 oy.append(0)
-            for i in range(-100, -35):
+            for i in range(-100, -34):
                 ox.append(0)
                 oy.append(i)
 

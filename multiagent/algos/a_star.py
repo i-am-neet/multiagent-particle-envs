@@ -257,10 +257,10 @@ def main():
     print(__file__ + " start!!")
 
     # start and goal position
-    sx = 0.0  # [m]
-    sy = 96.0  # [m]
-    gx = 50.0  # [m]
-    gy = -80.0  # [m]
+    sx = -2.0  # [m]
+    sy = 34.0  # [m]
+    gx = -50.0  # [m]
+    gy = 80.0  # [m]
     grid_size = 2.0  # [m]
     robot_radius = 5.0  # [m]
 
@@ -287,7 +287,7 @@ def main():
 
     room_args.get_room(0)
     a_star = AStarPlanner(room_args.ox, room_args.oy, grid_size, robot_radius)
-    room_args.get_room(3)
+    room_args.get_room(1)
     a_star.change_obstacle(room_args.ox, room_args.oy)
 
     ox = room_args.ox
@@ -299,6 +299,23 @@ def main():
         plt.plot(gx, gy, "xb")
         plt.grid(True)
         plt.axis("equal")
+
+    import numpy as np
+    # check points
+    # for r in range(-3, 3):
+    #     if (sx+r, sy) in zip(ox, oy): sx = sx-np.sign(r)*2
+    #     if (sx, sy+r) in zip(ox, oy): sy = sy-np.sign(r)*2
+    #     if (gx+r, gy) in zip(ox, oy): gx = gx-np.sign(r)*2
+    #     if (gx, gy+r) in zip(ox, oy): gy = gy-np.sign(r)*2
+    found = False
+    for i in range(-3, 4):
+        for j in range(-3, 4):
+            if (sx+i, sy+j) in zip(ox, oy):
+                sx = sx - np.sign(i)*2
+                sy = sy - np.sign(j)*2
+                found = True
+            if found: break
+        if found: break
 
     route = a_star.planning(sx, sy, gx, gy)
 

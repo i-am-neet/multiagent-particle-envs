@@ -5,9 +5,12 @@ import numpy as np
 from multiagent.multi_discrete import MultiDiscrete
 from multiagent.utils.env_util import EventCounter
 import random
+import time
 
 map_width = 600
 map_height = 600
+
+LAST_IMAGE_SIZE = 441
 
 # environment for all agents in the multiagent world
 # currently code assumes that no agents will be created/destroyed at runtime!
@@ -43,6 +46,11 @@ class MultiAgentEnv(gym.Env):
         self.shared_reward = world.collaborative if hasattr(world, 'collaborative') else False
         self.time = 0
 
+        # for experiment logging
+        self.time_n = [time.time()]*self.n
+        self.cost_time_n = [0]*self.n
+        self.collision_times_n = [0]*self.n
+
         # configure spaces
         self.action_space = []
         self.observation_space = []
@@ -50,8 +58,8 @@ class MultiAgentEnv(gym.Env):
             total_action_space = []
             # physical action space
             if self.discrete_action_space:
-                # u_action_space = spaces.Discrete(5)
-                u_action_space = spaces.Discrete(9)
+                u_action_space = spaces.Discrete(5)
+                # u_action_space = spaces.Discrete(9)
             else:
                 u_action_space = spaces.Box(low=-agent.u_range, high=+agent.u_range, shape=(world.dim_p,), dtype=np.float32)
             if agent.movable:
@@ -74,7 +82,8 @@ class MultiAgentEnv(gym.Env):
             else:
                 self.action_space.append(total_action_space[0])
             # observation space
-            obs_dim = len(observation_callback(agent, self.world)) + 441
+            obs_dim = len(observation_callback(agent, self.world)) + LAST_IMAGE_SIZE
+            # obs_dim = len(observation_callback(agent, self.world))
             self.observation_space.append(spaces.Box(low=-np.inf, high=+np.inf, shape=(obs_dim,), dtype=np.float32))
             agent.action.c = np.zeros(self.world.dim_c)
 
@@ -87,6 +96,9 @@ class MultiAgentEnv(gym.Env):
             self.viewers = [None] * self.n
             self.viewers_world = [None] * self.n
         self._reset_render()
+
+    def get_info(self):
+        return self.cost_time_n, self.collision_times_n
 
     # get expert action
     def get_expert_action_n(self):
@@ -132,6 +144,12 @@ class MultiAgentEnv(gym.Env):
                 else:
                     done_n[i] = d[0]
 
+        # experiment logging
+        for j, i in enumerate(info_n['n']):
+            if i['done'] and self.cost_time_n[j]==0:
+                self.cost_time_n[j] = time.time() - self.time_n[j]
+            self.collision_times_n[j] = i['collision']
+
         # all agents get total reward in cooperative case
         reward = np.sum(reward_n)
         if self.shared_reward:
@@ -139,15 +157,18 @@ class MultiAgentEnv(gym.Env):
 
         return obs_n, reward_n, done_n, info_n
 
+    # @EventCounter(schedules=[100, 200, 300, 400], matters=[0, 1, 2, 3, 4]) # Scheduling room
     @EventCounter(schedules=[10e+3, 20e+3, 30e+3, 40e+3], matters=[0, 1, 2, 3, 4]) # Scheduling room
     def reset(self, testing=False):
+        # experiment logging
+        self.time_n = [time.time()]*self.n
+        self.cost_time_n = [0]*self.n
+
         # reset world
         if testing:
             self.reset_callback(self.world, random.choice([0, 1, 2, 3, 4, 5]))
         else:
-            # FIXME Fixed Room Testing
-            # self.reset_callback(self.world, self.reset.matter, True) # matter is room id
-            self.reset_callback(self.world, 1, True) # matter is room id
+            self.reset_callback(self.world, self.reset.matter, True) # matter is room id
         # reset renderer
         self._reset_render()
         # record observations for each agent

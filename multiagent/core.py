@@ -194,6 +194,7 @@ class World(object):
                     entity.state.p_vel = entity.state.p_vel / np.sqrt(np.square(entity.state.p_vel[0]) +
                                                                   np.square(entity.state.p_vel[1])) * entity.max_speed
             entity.state.p_pos += entity.state.p_vel * self.dt
+            entity.state.p_pos = np.clip(entity.state.p_pos, -0.98, 0.98)
 
     def update_agent_state(self, agent):
         # set communication state (directly for now)

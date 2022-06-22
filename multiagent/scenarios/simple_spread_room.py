@@ -112,14 +112,11 @@ class Scenario(BaseScenario):
                 collide_agents = [ np.linalg.norm(world.agents[j].state.p_pos - tmpA.state.p_pos) < tmpA.size for j in range(i)]
                 if not any(collide_walls) and not any(collide_agents):
                     break
-            # agent.state.p_pos = np.random.uniform(-0.8, +0.8, world.dim_p)
             agent.state.p_pos = p
             agent.state.p_vel = np.zeros(world.dim_p)
             agent.state.c = np.zeros(world.dim_c)
             agent.collision_times = 0
         for i, landmark in enumerate(world.landmarks):
-            # p = np.array([[0.5, 0.5], [0.5, -0.5], [-0.5, 0.5], [-0.5, -0.5]])
-            # landmark.state.p_pos = p[i]
             st = time.time()
             while (True):
                 if time.time() - st > 5:
@@ -243,6 +240,19 @@ class Scenario(BaseScenario):
             p_ranges.append(d)
         return p_ranges
 
+    def info(self, agent, world):
+        # return agent's collision times & done info
+
+        i = {'collision': agent.collision_times, 'done': False}
+
+        l = world.landmarks[agent.id]
+        d = np.sqrt(np.sum(np.square(agent.state.p_pos - l.state.p_pos)))
+
+        if d < 0.1:
+            i['done'] = True
+
+        return i
+
     def reward(self, agent, world):
         # Agents are rewarded based on minimum agent distance to each landmark, penalized for collisions
         rew = 0
@@ -281,9 +291,9 @@ class Scenario(BaseScenario):
             rew -= agent.collision_times * 0.2
 
         # Direction reward which compare A* and action
-        scale = 0.01
-        p_start = tuple((agent.state.p_pos / scale).astype(int))
-        p_goal = tuple((l.state.p_pos / scale).astype(int))
+        # scale = 0.01
+        # p_start = (agent.state.p_pos / scale).astype(int)
+        # p_goal = (l.state.p_pos / scale).astype(int)
 
         route = self.route_n[agent.id]
 
@@ -358,8 +368,18 @@ class Scenario(BaseScenario):
 
         # A*
         scale = 0.01
-        p_start = tuple((agent.state.p_pos / scale).astype(int))
-        p_goal = tuple((landmark.state.p_pos / scale).astype(int))
+        p_start = (agent.state.p_pos / scale).astype(int)
+        p_goal = (landmark.state.p_pos / scale).astype(int)
+        # check A* points
+        found = False
+        for i in range(-3, 4):
+            for j in range(-3, 4):
+                if (p_start[0]+i, p_start[1]+j) in zip(room_args.ox, room_args.oy):
+                    p_start[0] = p_start[0] - np.sign(i)*2
+                    p_start[1] = p_start[1] - np.sign(j)*2
+                    found = True
+                if found: break
+            if found: break
 
         if np.linalg.norm(landmark_pos) < 0.1:
             route = []
@@ -569,8 +589,19 @@ class Scenario(BaseScenario):
             x =  int((vx + np.sign(vx)*grid_w/2) / grid_w) + (grid_size//2)
             y = (int((vy + np.sign(vy)*grid_w/2) / grid_h) - (grid_size//2))*-1
             if x in range(grid_size) and y in range(grid_size): # IFF other in range
-                p_start = tuple((op / scale).astype(int))
-                p_goal = tuple((og / scale).astype(int))
+                p_start = (op / scale).astype(int)
+                p_goal = (og / scale).astype(int)
+                # check A* points
+                found = False
+                for i in range(-3, 4):
+                    for j in range(-3, 4):
+                        if (p_start[0]+i, p_start[1]+j) in zip(room_args.ox, room_args.oy):
+                            p_start[0] = p_start[0] - np.sign(i)*2
+                            p_start[1] = p_start[1] - np.sign(j)*2
+                            found = True
+                        if found: break
+                    if found: break
+
                 route = a_star.planning(p_start[0], p_start[1], p_goal[0], p_goal[1])
                 route = np.array(route)*scale
                 for j, rp in enumerate(reversed(route)):
