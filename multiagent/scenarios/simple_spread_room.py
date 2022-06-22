@@ -372,8 +372,17 @@ class Scenario(BaseScenario):
         p_goal = (landmark.state.p_pos / scale).astype(int)
         # check A* points
         found = False
-        for i in range(-3, 4):
-            for j in range(-3, 4):
+        for i in range(-5, 6):
+            for j in range(-5, 6):
+                if (p_start[0]+i, p_start[1]+j) in zip(room_args.ox, room_args.oy):
+                    p_start[0] = p_start[0] - np.sign(i)*2
+                    p_start[1] = p_start[1] - np.sign(j)*2
+                    found = True
+                if found: break
+            if found: break
+        found = False
+        for i in range(-5, 6):
+            for j in range(-5, 6):
                 if (p_start[0]+i, p_start[1]+j) in zip(room_args.ox, room_args.oy):
                     p_start[0] = p_start[0] - np.sign(i)*2
                     p_start[1] = p_start[1] - np.sign(j)*2
@@ -537,7 +546,7 @@ class Scenario(BaseScenario):
         except rospy.ServiceException as e:
             print("Service call failed: {}".format(e))
 
-    def other_gridmap(self, agent, other, grid_size=21, grid_w=0.05, grid_h=0.05):
+    def other_gridmap(self, agent, other, grid_size=9, grid_w=0.15, grid_h=0.15):
         """
         Draw the occupied grid map about others' position
         params:
@@ -569,7 +578,7 @@ class Scenario(BaseScenario):
         return [grid.flatten()]
 
     # TODO: test this function
-    def other_plan_gridmap(self, agent, other, other_goal, grid_size=21, grid_w=0.05, grid_h=0.05):
+    def other_plan_gridmap(self, agent, other, other_goal, grid_size=9, grid_w=0.15, grid_h=0.15):
         """
         Draw the occupied grid map about others' plan
         IFF other in grid's range

@@ -10,7 +10,7 @@ import time
 map_width = 600
 map_height = 600
 
-LAST_IMAGE_SIZE = 441
+LAST_IMAGE_SIZE = 81
 
 # environment for all agents in the multiagent world
 # currently code assumes that no agents will be created/destroyed at runtime!
@@ -58,8 +58,8 @@ class MultiAgentEnv(gym.Env):
             total_action_space = []
             # physical action space
             if self.discrete_action_space:
-                u_action_space = spaces.Discrete(5)
-                # u_action_space = spaces.Discrete(9)
+                # u_action_space = spaces.Discrete(5)
+                u_action_space = spaces.Discrete(9)
             else:
                 u_action_space = spaces.Box(low=-agent.u_range, high=+agent.u_range, shape=(world.dim_p,), dtype=np.float32)
             if agent.movable:
@@ -158,7 +158,7 @@ class MultiAgentEnv(gym.Env):
         return obs_n, reward_n, done_n, info_n
 
     # @EventCounter(schedules=[100, 200, 300, 400], matters=[0, 1, 2, 3, 4]) # Scheduling room
-    @EventCounter(schedules=[10e+3, 20e+3, 30e+3, 40e+3], matters=[0, 1, 2, 3, 4]) # Scheduling room
+    @EventCounter(schedules=[8e+3, 16e+3, 32e+3, 64e+3], matters=[1, 2, 3, 4, 5]) # Scheduling room # ep
     def reset(self, testing=False):
         # experiment logging
         self.time_n = [time.time()]*self.n

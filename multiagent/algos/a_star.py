@@ -257,33 +257,12 @@ def main():
     print(__file__ + " start!!")
 
     # start and goal position
-    sx = -2.0  # [m]
-    sy = 34.0  # [m]
-    gx = -50.0  # [m]
-    gy = 80.0  # [m]
+    sx = 6.0  # [m]
+    sy = -14.0  # [m]
+    gx = -3.0  # [m]
+    gy = 31.0  # [m]
     grid_size = 2.0  # [m]
     robot_radius = 5.0  # [m]
-
-    # # set obstacle positions
-    # ox, oy = [], []
-    # for i in range(-100, 100):
-    #     ox.append(i)
-    #     oy.append(-100.0)
-    # for i in range(-100, 100):
-    #     ox.append(-100.0)
-    #     oy.append(i)
-    # for i in range(-100, 100):
-    #     ox.append(i)
-    #     oy.append(100.0)
-    # for i in range(-100, 100):
-    #     ox.append(100.0)
-    #     oy.append(i)
-    # for i in range(-100, -35):
-    #     ox.append(0.0)
-    #     oy.append(i)
-    # for i in range(35, 100):
-    #     ox.append(0.0)
-    #     oy.append(i)
 
     room_args.get_room(0)
     a_star = AStarPlanner(room_args.ox, room_args.oy, grid_size, robot_radius)
@@ -308,14 +287,24 @@ def main():
     #     if (gx+r, gy) in zip(ox, oy): gx = gx-np.sign(r)*2
     #     if (gx, gy+r) in zip(ox, oy): gy = gy-np.sign(r)*2
     found = False
-    for i in range(-3, 4):
-        for j in range(-3, 4):
+    for i in range(-5, 6):
+        for j in range(-5, 6):
             if (sx+i, sy+j) in zip(ox, oy):
                 sx = sx - np.sign(i)*2
                 sy = sy - np.sign(j)*2
                 found = True
             if found: break
         if found: break
+    found = False
+    for i in range(-5, 6):
+        for j in range(-5, 6):
+            if (gx+i, gy+j) in zip(ox, oy):
+                gx = gx - np.sign(i)*2
+                gy = gy - np.sign(j)*2
+                found = True
+            if found: break
+        if found: break
+
 
     route = a_star.planning(sx, sy, gx, gy)
 
