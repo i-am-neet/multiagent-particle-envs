@@ -151,9 +151,9 @@ class MultiAgentEnv(gym.Env):
             self.collision_times_n[j] = i['collision']
 
         # all agents get total reward in cooperative case
-        reward = np.sum(reward_n)
-        if self.shared_reward:
-            reward_n = [reward] * self.n
+        # reward = np.sum(reward_n)
+        # if self.shared_reward:
+        #     reward_n = [reward] * self.n
 
         return obs_n, reward_n, done_n, info_n
 

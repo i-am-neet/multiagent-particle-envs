@@ -72,7 +72,8 @@ class Scenario(BaseScenario):
             wall.collide = True
             wall.movable = False
 
-    @EventCounter(schedules=[400, 800, 1600, 3200, 6400], matters=[0.2, 0.4, 0.8, 1.2, 1.6, 2.0])
+    # @EventCounter(schedules=[400, 800, 1600, 3200, 6400], matters=[0.2, 0.4, 0.8, 1.2, 1.6, 2.0])
+    @EventCounter(schedules=[800, 1600, 3200, 6400], matters=[0.4, 0.8, 1.2, 1.6, 2.0])
     def reset_world(self, world, room_num=0, scheduling=False):
         # if self.reset_world.__func__.counter == self.reset_world.__func__.schedules[0]:
         #     print(f"########## Change matter: {self.reset_world.matter} ##########")
@@ -323,8 +324,7 @@ class Scenario(BaseScenario):
         dist = np.sqrt(np.sum(np.square(agent.state.p_pos - l.state.p_pos)))
 
         if dist < 0.1:
-            # done = True
-            pass
+            done = True
 
         if agent.collision_times > 10:
             done = True
@@ -375,17 +375,17 @@ class Scenario(BaseScenario):
         for i in range(-5, 6):
             for j in range(-5, 6):
                 if (p_start[0]+i, p_start[1]+j) in zip(room_args.ox, room_args.oy):
-                    p_start[0] = p_start[0] - np.sign(i)*2
-                    p_start[1] = p_start[1] - np.sign(j)*2
+                    p_start[0] = p_start[0] - np.sign(i)*5
+                    p_start[1] = p_start[1] - np.sign(j)*5
                     found = True
                 if found: break
             if found: break
         found = False
         for i in range(-5, 6):
             for j in range(-5, 6):
-                if (p_start[0]+i, p_start[1]+j) in zip(room_args.ox, room_args.oy):
-                    p_start[0] = p_start[0] - np.sign(i)*2
-                    p_start[1] = p_start[1] - np.sign(j)*2
+                if (p_goal[0]+i, p_goal[1]+j) in zip(room_args.ox, room_args.oy):
+                    p_goal[0] = p_goal[0] - np.sign(i)*5
+                    p_goal[1] = p_goal[1] - np.sign(j)*5
                     found = True
                 if found: break
             if found: break
@@ -602,11 +602,20 @@ class Scenario(BaseScenario):
                 p_goal = (og / scale).astype(int)
                 # check A* points
                 found = False
-                for i in range(-3, 4):
-                    for j in range(-3, 4):
+                for i in range(-5, 6):
+                    for j in range(-5, 6):
                         if (p_start[0]+i, p_start[1]+j) in zip(room_args.ox, room_args.oy):
-                            p_start[0] = p_start[0] - np.sign(i)*2
-                            p_start[1] = p_start[1] - np.sign(j)*2
+                            p_start[0] = p_start[0] - np.sign(i)*5
+                            p_start[1] = p_start[1] - np.sign(j)*5
+                            found = True
+                        if found: break
+                    if found: break
+                found = False
+                for i in range(-5, 6):
+                    for j in range(-5, 6):
+                        if (p_goal[0]+i, p_goal[1]+j) in zip(room_args.ox, room_args.oy):
+                            p_goal[0] = p_goal[0] - np.sign(i)*5
+                            p_goal[1] = p_goal[1] - np.sign(j)*5
                             found = True
                         if found: break
                     if found: break
